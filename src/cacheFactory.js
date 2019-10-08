@@ -1,6 +1,5 @@
 // Don't change the import/export syntax. Needs to be working with nodejs.
 // Maybe on next LTS release we will be able to change this.
-const keys = require('lodash/keys');
 const forEach = require('lodash/forEach');
 const isUndefined = require('lodash/isUndefined');
 const flow = require('lodash/fp/flow');
@@ -16,12 +15,10 @@ let gcInterval = null;
 
 function gc() {
     const now = new Date().getTime();
-    console.log(`Cache GC: ${keys(caches).join(', ')}`);
     forEach(caches, (c, id) => {
         const limit = now - c.lifetime;
         c.vacuum();
         if (c.ts < limit) {
-            console.log(`Cache expired: ${id}`);
             delete caches[id];
         }
     });
@@ -70,7 +67,6 @@ function cacheFactory(name, lifetime = DEFAULT_LIFETIME, maxSize = DEFAULT_MAXSI
                     caches[cacheId] = { lifetime, vacuum, now };
                     return item;
                 }
-                    console.log(`${cacheId}: expired ${id}`); // eslint-disable-line
                 delete data[id];
                 delete used[id];
                 return null;

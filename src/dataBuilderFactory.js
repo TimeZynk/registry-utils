@@ -31,41 +31,29 @@ function byPriority(fi) {
 }
 
 function merger(prev, next) {
-    try {
-        if (Immutable.List.isList(prev)) {
-            return prev.concat(next);
-        }
-        if (Immutable.Map.isMap(prev)) {
-            return prev.mergeWith(merger, next);
-        }
-        if (Immutable.Set.isSet(prev)) {
-            return prev.union(next);
-        }
-    } catch (e) {
-        console.log('Error when merging data') // eslint-disable-line
-        console.log(e) // eslint-disable-line
+    if (Immutable.List.isList(prev)) {
+        return prev.concat(next);
+    }
+    if (Immutable.Map.isMap(prev)) {
+        return prev.mergeWith(merger, next);
+    }
+    if (Immutable.Set.isSet(prev)) {
+        return prev.union(next);
     }
 
-    return isNil(next)
-        ? prev
-        : next;
+    return isNil(next) ? prev : next;
 }
-function weakMerger(prev, next) {
-    try {
-        if (Immutable.List.isList(prev)) {
-            return prev.concat(next);
-        }
-        if (Immutable.Map.isMap(prev)) {
-            return prev.mergeWith(weakMerger, next);
-        }
-        if (Immutable.Set.isSet(prev)) {
-            return prev.union(next);
-        }
-    } catch (e) {
-        console.log('Error when merging data') // eslint-disable-line
-        console.log(e) // eslint-disable-line
-    }
 
+function weakMerger(prev, next) {
+    if (Immutable.List.isList(prev)) {
+        return prev.concat(next);
+    }
+    if (Immutable.Map.isMap(prev)) {
+        return prev.mergeWith(weakMerger, next);
+    }
+    if (Immutable.Set.isSet(prev)) {
+        return prev.union(next);
+    }
     return prev;
 }
 
