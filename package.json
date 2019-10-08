@@ -1,0 +1,27 @@
+{
+  "name": "timezynk-registry-utils",
+  "version": "0.1.0",
+  "description": "Utilities for working with Timezynk registries.",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:TimeZynk/registry-utils.git"
+  },
+  "main": "src/index.jsx",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "eslint src --ext .js"
+  },
+  "devDependencies": {
+    "babel-eslint": "^10.0.1",
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2"
+  },
+  "author": "Timezynk AB",
+  "license": "MIT",
+  "dependencies": {
+    "immutable": "^3.8.2",
+    "lodash": "^4.17.10",
+    "reselect": "^4.0.0"
+  }
+}
