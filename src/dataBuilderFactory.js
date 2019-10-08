@@ -99,7 +99,7 @@ module.exports = defaultMemoize((regFields, regData, users) => {
             ? regFields
             : Immutable.List()
     ).sortBy(byPriority);
-    cache?.flush?.();
+    cache && cache.flush && cache.flush();
 
     function mergeUserValues(acc, id) {
         let referencedValues = cache.get(id);
