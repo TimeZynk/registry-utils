@@ -6,7 +6,7 @@
     "type": "git",
     "url": "git@github.com:TimeZynk/registry-utils.git"
   },
-  "main": "src/index.jsx",
+  "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "lint": "eslint src --ext .js"
