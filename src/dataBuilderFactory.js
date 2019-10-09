@@ -1,29 +1,30 @@
 // Don't change the import/export syntax. Needs to be working with nodejs.
 // Maybe on next LTS release we will be able to change this.
-const Immutable = require('immutable');
-const defaultMemoize = require('reselect').defaultMemoize; // eslint-disable-line
-const isNil = require('lodash/isNil');
-const isString = require('lodash/isString');
-const _isEmpty = require('lodash/isEmpty');
-const { REPORTS_REG_ID, SHIFTS_REG_ID } = require('./defaultRegisters');
-const cacheFactory = require('./cacheFactory');
+'use strict';
+var Immutable = require('immutable');
+var defaultMemoize = require('reselect').defaultMemoize; // eslint-disable-line
+var isNil = require('lodash/isNil');
+var isString = require('lodash/isString');
+var _isEmpty = require('lodash/isEmpty');
+var defaultRegisters = require('./defaultRegisters');
+var cacheFactory = require('./cacheFactory');
 
-const cache = cacheFactory('fieldData');
-const visited = new Set();
+var cache = cacheFactory('fieldData');
+var visited = {};
 
 function byPriority(fi) {
-    const weight = fi.get('weight');
+    var weight = fi.get('weight');
 
     if (fi.get('archived')) {
         return -10000 + weight;
     }
 
-    const registryId = fi.get('registry-id');
+    var registryId = fi.get('registry-id');
 
     switch (registryId) {
-    case REPORTS_REG_ID:
+    case defaultRegisters.REPORTS_REG_ID:
         return 10000 + weight;
-    case SHIFTS_REG_ID:
+    case defaultRegisters.SHIFTS_REG_ID:
         return 1000 + weight;
     default:
         return weight;
@@ -68,21 +69,21 @@ function isEmpty(v) {
 }
 
 function getValue(item, values, fi) {
-    const fieldId = fi.get('field-id');
+    var fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
     }
 
-    const id = fi.get('id');
-    const value = values.get(id);
+    var id = fi.get('id');
+    var value = values.get(id);
 
     return isNil(value)
         ? item.get(id)
         : value;
 }
 
-module.exports = defaultMemoize((regFields, regData, users) => {
-    const fieldInstances = (
+module.exports = defaultMemoize(function (regFields, regData, users) {
+    var fieldInstances = (
         regFields && regFields.sortBy
             ? regFields
             : Immutable.List()
@@ -90,22 +91,22 @@ module.exports = defaultMemoize((regFields, regData, users) => {
     cache && cache.flush && cache.flush();
 
     function mergeUserValues(acc, id) {
-        let referencedValues = cache.get(id);
+        var referencedValues = cache.get(id);
 
-        if (!referencedValues && !visited.has(id)) {
-            visited.add(id);
-            const d = users.get(id);
+        if (!referencedValues && !visited[id]) {
+            visited[id] = true;
+            var d = users.get(id);
             if (d && !d.isEmpty()) {
                 referencedValues = Immutable.Map({
                     users: Immutable.List([Immutable.Map({
                         name: d.get('name'),
-                        id,
+                        id: id,
                     })]),
                 }).asMutable();
                 referencedValues = mergeValues(referencedValues, d);
                 cache.set(id, referencedValues.asImmutable());
             }
-            visited.delete(id);
+            delete visited[id];
         }
 
         return (referencedValues)
@@ -114,15 +115,15 @@ module.exports = defaultMemoize((regFields, regData, users) => {
     }
 
     function mergeRegistryValues(acc, id) {
-        let referencedValues = cache.get(id);
+        var referencedValues = cache.get(id);
 
-        if (!referencedValues && !visited.has(id)) {
-            visited.add(id);
-            const d = regData.get(id);
+        if (!referencedValues && !visited[id]) {
+            visited[id] = true;
+            var d = regData.get(id);
             if (d && !d.isEmpty()) {
-                const pathSegment = Immutable.Map({
+                var pathSegment = Immutable.Map({
                     title: d.get('title'),
-                    id,
+                    id: id,
                     'registry-id': d.get('registry-id'),
                 });
 
@@ -133,7 +134,7 @@ module.exports = defaultMemoize((regFields, regData, users) => {
                 referencedValues = mergeValues(referencedValues, d);
                 cache.set(id, referencedValues.asImmutable());
             }
-            visited.delete(id);
+            delete visited[id];
         }
 
         return (referencedValues)
@@ -142,24 +143,24 @@ module.exports = defaultMemoize((regFields, regData, users) => {
     }
 
     function mergeValues(acc, item) {
-        const values = item.get('values') || Immutable.Map();
+        var values = item.get('values') || Immutable.Map();
 
-        return fieldInstances.reduce((innerAcc, fi) => {
-            const registryId = item.get('registry-id');
+        return fieldInstances.reduce(function (innerAcc, fi) {
+            var registryId = item.get('registry-id');
             if (registryId && registryId !== fi.get('registry-id')) {
                 return innerAcc;
             }
 
-            const v = getValue(item, values, fi);
+            var v = getValue(item, values, fi);
             if (isEmpty(v)) {
                 return innerAcc;
             }
 
-            const id = fi.get('id');
+            var id = fi.get('id');
             innerAcc = innerAcc.set(id, v);
 
-            const fid = fi.get('field-id');
-            const s = fi.get('field-section');
+            var fid = fi.get('field-id');
+            var s = fi.get('field-section');
             if (s) {
                 innerAcc = innerAcc.setIn([s, fid], v)
                     .setIn(['_mapping', s, fid], id);
@@ -185,25 +186,25 @@ module.exports = defaultMemoize((regFields, regData, users) => {
         }, acc);
     }
 
-    return (item) => {
+    return function (item) {
         if (!item || !item.get) {
             return null;
         }
 
-        const id = item.get('id');
-        const validFrom = item.get('valid-from');
-        const cacheKey = id && `${id}/${validFrom}`;
-        const refData = cacheKey && cache.get(cacheKey);
+        var id = item.get('id');
+        var validFrom = item.get('valid-from');
+        var cacheKey = id && (id + '/' + validFrom);
+        var refData = cacheKey && cache.get(cacheKey);
 
         if (refData) {
             return refData;
         }
 
-        visited.clear();
+        visited = {};
 
-        let data = mergeValues(Immutable.Map().asMutable(), item);
-        const userId = item.get('user-id');
-        const bookedUsers = item.get('booked-users');
+        var data = mergeValues(Immutable.Map().asMutable(), item);
+        var userId = item.get('user-id');
+        var bookedUsers = item.get('booked-users');
 
         if (userId) {
             data = mergeUserValues(data, userId);

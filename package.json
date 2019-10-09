@@ -14,8 +14,7 @@
   "devDependencies": {
     "babel-eslint": "^10.0.1",
     "eslint": "^5.16.0",
-    "eslint-config-airbnb-base": "^14.0.0",
-    "eslint-plugin-import": "^2.18.2"
+    "eslint-plugin-es5": "^1.4.1"
   },
   "author": "Timezynk AB",
   "license": "MIT",

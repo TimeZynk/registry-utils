@@ -1,10 +1,11 @@
-const dataBuilderFactory = require('./dataBuilderFactory');
-const registryDefaultData = require('./registryDefaultData');
-const defaultRegisters = require('./defaultRegisters');
+'use strict';
+var dataBuilderFactory = require('./dataBuilderFactory');
+var registryDefaultData = require('./registryDefaultData');
+var defaultRegisters = require('./defaultRegisters');
 
 module.exports = {
-    dataBuilderFactory,
-    registryDefaultData,
-    defaultRegisters,
+    dataBuilderFactory: dataBuilderFactory,
+    registryDefaultData: registryDefaultData,
+    defaultRegisters: defaultRegisters,
     default: dataBuilderFactory,
 };

@@ -1,15 +1,17 @@
 // Don't change the import/export syntax. Needs to be working with nodejs.
 // Maybe on next LTS release we will be able to change this.
-const {
-    USERS_REG_ID,
-    SHIFTS_REG_ID,
-    REPORTS_REG_ID,
-    MATERIALS_REG_ID,
-    ALLOWANCE_REG_ID,
-    AVAIL_REG_ID,
-} = require('./defaultRegisters');
+'use strict';
+var defaultRegisters = require('./defaultRegisters');
 
-exports.registers = function registers(t = window.t) {
+var ALLOWANCE_REG_ID = defaultRegisters.ALLOWANCE_REG_ID;
+var AVAIL_REG_ID = defaultRegisters.AVAIL_REG_ID;
+var MATERIALS_REG_ID = defaultRegisters.MATERIALS_REG_ID;
+var REPORTS_REG_ID = defaultRegisters.REPORTS_REG_ID;
+var SHIFTS_REG_ID = defaultRegisters.SHIFTS_REG_ID;
+var USERS_REG_ID = defaultRegisters.USERS_REG_ID;
+
+exports.registers = function registers(t) {
+    t = t || window.t;
     return [{
         id: USERS_REG_ID,
         title: t.Users,
@@ -35,7 +37,7 @@ exports.registers = function registers(t = window.t) {
         id: MATERIALS_REG_ID,
         title: t.materials_reg_title,
         description: '',
-        link: `/registers/${MATERIALS_REG_ID}`,
+        link: '/registers/' + MATERIALS_REG_ID,
         icon: 'tz-icon invoice-items',
         isStatic: true,
         'if-module': 'materials',
@@ -43,7 +45,7 @@ exports.registers = function registers(t = window.t) {
         id: ALLOWANCE_REG_ID,
         title: t.allowance_reg_title,
         description: '',
-        link: `/registers/${ALLOWANCE_REG_ID}`,
+        link: '/registers/' + ALLOWANCE_REG_ID,
         icon: 'icon-globe',
         isStatic: true,
         'if-module': 'travel',
@@ -51,7 +53,8 @@ exports.registers = function registers(t = window.t) {
 };
 
 // Field instances
-exports.registryFields = function registryFields(t = window.t) {
+exports.registryFields = function registryFields(t) {
+    t = t || window.t;
     return [
         /* User registry fields */
         {
@@ -367,7 +370,7 @@ exports.registryFields = function registryFields(t = window.t) {
         {
             'field-id': 'title',
             'field-type': 'string',
-            id: `title-${MATERIALS_REG_ID}`,
+            id: 'title-' + MATERIALS_REG_ID,
             vid: 'static',
             'registry-id': MATERIALS_REG_ID,
             title: t.Name,
