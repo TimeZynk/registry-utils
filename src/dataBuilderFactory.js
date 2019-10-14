@@ -143,6 +143,9 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
     }
 
     function mergeValues(acc, item) {
+        if (!item || !item.get) {
+            return acc;
+        }
         var values = item.get('values') || Immutable.Map();
 
         return fieldInstances.reduce(function (innerAcc, fi) {
@@ -168,8 +171,7 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
                 innerAcc = innerAcc.set(fid, v);
             }
 
-            if (item && fid === 'customer-no' &&
-        !innerAcc.getIn(['invoice-head', 'customer-name'])) {
+            if (item && fid === 'customer-no' && !innerAcc.getIn(['invoice-head', 'customer-name'])) {
                 // Copy customer name from title
                 innerAcc = innerAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
             }
