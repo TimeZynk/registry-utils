@@ -93,7 +93,7 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
     function mergeUserValues(acc, id) {
         var referencedValues = cache.get(id);
 
-        if (!referencedValues && !visited[id]) {
+        if (users && !referencedValues && !visited[id]) {
             visited[id] = true;
             var d = users.get(id);
             if (d && !d.isEmpty()) {
