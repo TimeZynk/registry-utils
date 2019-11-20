@@ -127,10 +127,12 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
                     'registry-id': d.get('registry-id'),
                 });
 
+
                 referencedValues = Immutable.Map({
                     path: Immutable.List([pathSegment]),
-                    [`title-${d.get('registry-id')}`]: d.get('title'),
                 }).asMutable();
+                var titleKey = 'title-' + d.get('registry-id');
+                referencedValues = referencedValues.set(titleKey, d.get('title'));
 
                 referencedValues = mergeValues(referencedValues, d);
                 cache.set(id, referencedValues.asImmutable());
