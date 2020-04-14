@@ -19,6 +19,11 @@ function byPriority(fi) {
         return -10000 + weight;
     }
 
+    // Make sure field-references are always resolved last
+    if (fi.get('field-type') === 'field-reference-numeric') {
+        return 11000 + weight;
+    }
+
     var registryId = fi.get('registry-id');
 
     switch (registryId) {
@@ -185,6 +190,10 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
 
             if (fi.get('field-type') === 'user-reference') {
                 innerAcc = mergeUserValues(innerAcc, v);
+            }
+
+            if (fi.get('field-type') === 'field-reference-numeric') {
+                innerAcc = innerAcc.set(fid, innerAcc.get(v));
             }
 
             return innerAcc;
