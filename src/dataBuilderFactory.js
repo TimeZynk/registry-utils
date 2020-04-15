@@ -199,15 +199,20 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
      * @param {*} refData
      */
     function resolveFieldReferences(refData) {
+        if (!refData || refData.isEmpty()) {
+            return refData;
+        }
         return fieldInstances.reduce(function (innerAcc, fi) {
             if (fi.get('field-type') !== 'field-reference') {
                 return innerAcc;
             }
-            var nextAcc = innerAcc;
             var id = fi.get('id');
             var referencedField = innerAcc.get(id);
-            var referencedValue = referencedField ? innerAcc.get(referencedField) : undefined;
-            return nextAcc.set(id, referencedValue);
+            if (!referencedField) {
+                return innerAcc;
+            }
+            var referencedValue = innerAcc.get(referencedField);
+            return innerAcc.set(id, referencedValue);
         }, refData.asMutable()).asImmutable();
     }
 
