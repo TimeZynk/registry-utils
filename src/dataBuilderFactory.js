@@ -150,9 +150,9 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
             return acc;
         }
         var values = item.get('values') || Immutable.Map();
+        var registryId = item.get('registry-id');
 
-        return fieldInstances.reduce(function (innerAcc, fi) {
-            var registryId = item.get('registry-id');
+        var refData = fieldInstances.reduce(function (innerAcc, fi) {
             if (registryId && registryId !== fi.get('registry-id')) {
                 return innerAcc;
             }
@@ -163,32 +163,57 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
             }
 
             var id = fi.get('id');
-            innerAcc = innerAcc.set(id, v);
+            var nextAcc = innerAcc.set(id, v);
 
             var fid = fi.get('field-id');
             var s = fi.get('field-section');
             if (s) {
-                innerAcc = innerAcc.setIn([s, fid], v)
+                nextAcc = nextAcc.setIn([s, fid], v)
                     .setIn(['_mapping', s, fid], id);
             } else {
-                innerAcc = innerAcc.set(fid, v);
+                nextAcc = nextAcc.set(fid, v);
             }
 
-            if (item && fid === 'customer-no' && !innerAcc.getIn(['invoice-head', 'customer-name'])) {
+            if (item && fid === 'customer-no' && !nextAcc.getIn(['invoice-head', 'customer-name'])) {
                 // Copy customer name from title
-                innerAcc = innerAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
+                nextAcc = nextAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
             }
 
             if (fi.get('field-type') === 'registry-reference') {
-                innerAcc = mergeRegistryValues(innerAcc, v);
+                nextAcc = mergeRegistryValues(nextAcc, v);
             }
 
             if (fi.get('field-type') === 'user-reference') {
-                innerAcc = mergeUserValues(innerAcc, v);
+                nextAcc = mergeUserValues(nextAcc, v);
             }
 
-            return innerAcc;
+            return nextAcc;
         }, acc);
+
+        return refData;
+    }
+
+    /**
+     * Resolve field references.
+     * Process field references after everything else is resolved
+     * @param {*} refData
+     */
+    function resolveFieldReferences(refData) {
+        if (!refData || refData.isEmpty()) {
+            return refData;
+        }
+        return fieldInstances.reduce(function (innerAcc, fi) {
+            if (fi.get('field-type') !== 'field-reference') {
+                return innerAcc;
+            }
+            var id = fi.get('id');
+            var referencedField = innerAcc.get(id);
+            if (!referencedField) {
+                return innerAcc;
+            }
+            var referencedValue = innerAcc.get(referencedField);
+            return innerAcc.set(id, referencedValue);
+        }, refData.asMutable()).asImmutable();
     }
 
     return function (item) {
@@ -208,6 +233,7 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
         visited = {};
 
         var data = mergeValues(Immutable.Map().asMutable(), item);
+        data = resolveFieldReferences(data);
         var userId = item.get('user-id');
         var bookedUsers = item.get('booked-users');
 
