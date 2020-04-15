@@ -19,11 +19,6 @@ function byPriority(fi) {
         return -10000 + weight;
     }
 
-    // Make sure field-references are always resolved last
-    if (fi.get('field-type') === 'field-reference') {
-        return 11000 + weight;
-    }
-
     var registryId = fi.get('registry-id');
 
     switch (registryId) {
@@ -155,9 +150,9 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
             return acc;
         }
         var values = item.get('values') || Immutable.Map();
+        var registryId = item.get('registry-id');
 
-        return fieldInstances.reduce(function (innerAcc, fi) {
-            var registryId = item.get('registry-id');
+        var refData = fieldInstances.reduce(function (innerAcc, fi) {
             if (registryId && registryId !== fi.get('registry-id')) {
                 return innerAcc;
             }
@@ -192,12 +187,27 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
                 innerAcc = mergeUserValues(innerAcc, v);
             }
 
-            if (fi.get('field-type') === 'field-reference') {
-                innerAcc = innerAcc.set(fid, innerAcc.get(v));
-            }
-
             return innerAcc;
         }, acc);
+
+        // Process field references after everything else is resolved
+        refData = fieldInstances.reduce(function (innerAcc, fi) {
+            var nextAcc = innerAcc;
+            if (registryId && registryId !== fi.get('registry-id')) {
+                return nextAcc;
+            }
+            if (fi.get('field-type') !== 'field-reference') {
+                return nextAcc;
+            }
+            var v = getValue(item, values, fi);
+            if (isEmpty(v)) {
+                return nextAcc;
+            }
+
+            return nextAcc.set(fi.get('id'), innerAcc.get(v));
+        }, refData);
+
+        return refData;
     }
 
     return function (item) {
