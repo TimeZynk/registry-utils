@@ -82,7 +82,7 @@ function getValue(item, values, fi) {
         : value;
 }
 
-module.exports = defaultMemoize(function (regFields, regData, users) {
+module.exports = defaultMemoize(function (regFields, regData, users, articles) {
     var fieldInstances = (
         regFields && regFields.sortBy
             ? regFields
@@ -179,12 +179,14 @@ module.exports = defaultMemoize(function (regFields, regData, users) {
                 nextAcc = nextAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
             }
 
-            if (fi.get('field-type') === 'registry-reference') {
+            var fieldType = fi.get('field-type');
+            if (fieldType === 'registry-reference') {
                 nextAcc = mergeRegistryValues(nextAcc, v);
-            }
-
-            if (fi.get('field-type') === 'user-reference') {
+            } else if (fieldType === 'user-reference') {
                 nextAcc = mergeUserValues(nextAcc, v);
+            } else if (fieldType === 'article-reference') {
+                var article = articles && articles.get(v);
+                nextAcc = nextAcc.set(id, article || null);
             }
 
             return nextAcc;
