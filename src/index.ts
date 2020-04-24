@@ -1,5 +1,4 @@
-'use strict';
-var dataBuilderFactory = require('./dataBuilderFactory');
+var dataBuilderFactory = require('./dataBuilderFactory').memoizedDataBuilderFactory;
 var registryDefaultData = require('./registryDefaultData');
 var defaultRegisters = require('./defaultRegisters');
 

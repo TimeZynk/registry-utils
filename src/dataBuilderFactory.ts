@@ -1,6 +1,6 @@
 // Don't change the import/export syntax. Needs to be working with nodejs.
 // Maybe on next LTS release we will be able to change this.
-'use strict';
+
 var Immutable = require('immutable');
 var defaultMemoize = require('reselect').defaultMemoize; // eslint-disable-line
 var isNil = require('lodash/isNil');
@@ -13,13 +13,13 @@ var cache = cacheFactory('fieldData');
 var visited = {};
 
 function byPriority(fi) {
-    var weight = fi.get('weight');
+    const weight = fi.get('weight');
 
     if (fi.get('archived')) {
         return -10000 + weight;
     }
 
-    var registryId = fi.get('registry-id');
+    const registryId = fi.get('registry-id');
 
     switch (registryId) {
     case defaultRegisters.REPORTS_REG_ID:
@@ -69,39 +69,43 @@ function isEmpty(v) {
 }
 
 function getValue(item, values, fi) {
-    var fieldId = fi.get('field-id');
+    const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
     }
 
-    var id = fi.get('id');
-    var value = values.get(id);
+    const id = fi.get('id');
+    const value = values.get(id);
 
-    return isNil(value)
-        ? item.get(id)
-        : value;
+    return isNil(value) ? item.get(id) : value;
 }
 
-module.exports = defaultMemoize(function (regFields, regData, users, articles) {
-    var fieldInstances = (
-        regFields && regFields.sortBy
-            ? regFields
-            : Immutable.List()
-    ).sortBy(byPriority);
+/**
+ *  Create a new dataBuilder function.
+ * @param {Immutable.Map} regFields Registry fields
+ * @param {Immutable.Map} regData Registry data
+ * @param {Immutable.Map} users Users
+ * @param {Immutable.Map} invoiceArticles Invoice articles (optional)
+ * @param {Immutable.Map} salaryArticles Salary articles (optional)
+ */
+function dataBuilderFactory(regFields, regData, users, invoiceArticles, salaryArticles) {
+    const fieldInstances = (regFields && regFields.sortBy ? regFields : Immutable.List()).sortBy(byPriority);
     cache && cache.flush && cache.flush();
 
     function mergeUserValues(acc, id) {
-        var referencedValues = cache.get(id);
+        let referencedValues = cache.get(id);
 
         if (users && !referencedValues && !visited[id]) {
             visited[id] = true;
-            var d = users.get(id);
+            const d = users.get(id);
             if (d && !d.isEmpty()) {
                 referencedValues = Immutable.Map({
-                    users: Immutable.List([Immutable.Map({
-                        name: d.get('name'),
-                        id: id,
-                    })]),
+                    users: Immutable.List([
+                        Immutable.Map({
+                            name: d.get('name'),
+                            id: id,
+                        }),
+                    ]),
                 }).asMutable();
                 referencedValues = mergeValues(referencedValues, d);
                 cache.set(id, referencedValues.asImmutable());
@@ -109,29 +113,26 @@ module.exports = defaultMemoize(function (regFields, regData, users, articles) {
             delete visited[id];
         }
 
-        return (referencedValues)
-            ? acc.mergeWith(weakMerger, referencedValues)
-            : acc;
+        return referencedValues ? acc.mergeWith(weakMerger, referencedValues) : acc;
     }
 
     function mergeRegistryValues(acc, id) {
-        var referencedValues = cache.get(id);
+        let referencedValues = cache.get(id);
 
         if (!referencedValues && !visited[id]) {
             visited[id] = true;
-            var d = regData.get(id);
+            const d = regData.get(id);
             if (d && !d.isEmpty()) {
-                var pathSegment = Immutable.Map({
+                const pathSegment = Immutable.Map({
                     title: d.get('title'),
                     id: id,
                     'registry-id': d.get('registry-id'),
                 });
 
-
                 referencedValues = Immutable.Map({
                     path: Immutable.List([pathSegment]),
                 }).asMutable();
-                var titleKey = 'title-' + d.get('registry-id');
+                const titleKey = 'title-' + d.get('registry-id');
                 referencedValues = referencedValues.set(titleKey, d.get('title'));
 
                 referencedValues = mergeValues(referencedValues, d);
@@ -140,36 +141,33 @@ module.exports = defaultMemoize(function (regFields, regData, users, articles) {
             delete visited[id];
         }
 
-        return (referencedValues)
-            ? acc.mergeWith(merger, referencedValues)
-            : acc;
+        return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
     }
 
     function mergeValues(acc, item) {
         if (!item || !item.get) {
             return acc;
         }
-        var values = item.get('values') || Immutable.Map();
-        var registryId = item.get('registry-id');
+        const values = item.get('values') || Immutable.Map();
+        const registryId = item.get('registry-id');
 
-        var refData = fieldInstances.reduce(function (innerAcc, fi) {
+        const refData = fieldInstances.reduce(function (innerAcc, fi) {
             if (registryId && registryId !== fi.get('registry-id')) {
                 return innerAcc;
             }
 
-            var v = getValue(item, values, fi);
+            const v = getValue(item, values, fi);
             if (isEmpty(v)) {
                 return innerAcc;
             }
 
-            var id = fi.get('id');
-            var nextAcc = innerAcc.set(id, v);
+            const id = fi.get('id');
+            let nextAcc = innerAcc.set(id, v);
 
-            var fid = fi.get('field-id');
-            var s = fi.get('field-section');
+            const fid = fi.get('field-id');
+            const s = fi.get('field-section');
             if (s) {
-                nextAcc = nextAcc.setIn([s, fid], v)
-                    .setIn(['_mapping', s, fid], id);
+                nextAcc = nextAcc.setIn([s, fid], v).setIn(['_mapping', s, fid], id);
             } else {
                 nextAcc = nextAcc.set(fid, v);
             }
@@ -179,13 +177,17 @@ module.exports = defaultMemoize(function (regFields, regData, users, articles) {
                 nextAcc = nextAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
             }
 
-            var fieldType = fi.get('field-type');
+            const fieldType = fi.get('field-type');
             if (fieldType === 'registry-reference') {
                 nextAcc = mergeRegistryValues(nextAcc, v);
             } else if (fieldType === 'user-reference') {
                 nextAcc = mergeUserValues(nextAcc, v);
             } else if (fieldType === 'article-reference') {
-                var article = articles && articles.get(v);
+                const type = fi.getIn(['settings', 'article-type']);
+                const article =
+                    type === 'salary'
+                        ? salaryArticles && salaryArticles.get(v)
+                        : invoiceArticles && invoiceArticles.get(v);
                 nextAcc = nextAcc.set(id, article || null);
             }
 
@@ -204,18 +206,20 @@ module.exports = defaultMemoize(function (regFields, regData, users, articles) {
         if (!refData || refData.isEmpty()) {
             return refData;
         }
-        return fieldInstances.reduce(function (innerAcc, fi) {
-            if (fi.get('field-type') !== 'field-reference') {
-                return innerAcc;
-            }
-            var id = fi.get('id');
-            var referencedField = innerAcc.get(id);
-            if (!referencedField) {
-                return innerAcc;
-            }
-            var referencedValue = innerAcc.get(referencedField);
-            return innerAcc.set(id, referencedValue);
-        }, refData.asMutable()).asImmutable();
+        return fieldInstances
+            .reduce(function (innerAcc, fi) {
+                if (fi.get('field-type') !== 'field-reference') {
+                    return innerAcc;
+                }
+                const id = fi.get('id');
+                const referencedField = innerAcc.get(id);
+                if (!referencedField) {
+                    return innerAcc;
+                }
+                const referencedValue = innerAcc.get(referencedField);
+                return innerAcc.set(id, referencedValue);
+            }, refData.asMutable())
+            .asImmutable();
     }
 
     return function (item) {
@@ -223,10 +227,10 @@ module.exports = defaultMemoize(function (regFields, regData, users, articles) {
             return null;
         }
 
-        var id = item.get('id');
-        var validFrom = item.get('valid-from');
-        var cacheKey = id && (id + '/' + validFrom);
-        var refData = cacheKey && cache.get(cacheKey);
+        const id = item.get('id');
+        const validFrom = item.get('valid-from');
+        const cacheKey = id && id + '/' + validFrom;
+        const refData = cacheKey && cache.get(cacheKey);
 
         if (refData) {
             return refData;
@@ -234,10 +238,10 @@ module.exports = defaultMemoize(function (regFields, regData, users, articles) {
 
         visited = {};
 
-        var data = mergeValues(Immutable.Map().asMutable(), item);
+        let data = mergeValues(Immutable.Map().asMutable(), item);
         data = resolveFieldReferences(data);
-        var userId = item.get('user-id');
-        var bookedUsers = item.get('booked-users');
+        const userId = item.get('user-id');
+        const bookedUsers = item.get('booked-users');
 
         if (userId) {
             data = mergeUserValues(data, userId);
@@ -256,4 +260,9 @@ module.exports = defaultMemoize(function (regFields, regData, users, articles) {
 
         return data;
     };
-});
+}
+
+module.exports = {
+    dataBuilderFactory: dataBuilderFactory,
+    memoizedDataBuilderFactory: defaultMemoize(dataBuilderFactory),
+};

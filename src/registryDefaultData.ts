@@ -1,6 +1,6 @@
 // Don't change the import/export syntax. Needs to be working with nodejs.
 // Maybe on next LTS release we will be able to change this.
-'use strict';
+
 var defaultRegisters = require('./defaultRegisters');
 
 var ALLOWANCE_REG_ID = defaultRegisters.ALLOWANCE_REG_ID;
@@ -12,44 +12,50 @@ var USERS_REG_ID = defaultRegisters.USERS_REG_ID;
 
 exports.registers = function registers(t) {
     t = t || window.t;
-    return [{
-        id: USERS_REG_ID,
-        title: t.Users,
-        description: t.registry_user_description,
-        link: '/users',
-        icon: 'tz-icon users',
-        isStatic: true,
-    }, {
-        id: SHIFTS_REG_ID,
-        title: t.Shifts,
-        description: t.registry_shift_description,
-        link: '/shifts',
-        icon: 'tz-icon plan',
-        isStatic: true,
-    }, {
-        id: REPORTS_REG_ID,
-        title: t.Timereports,
-        description: t.registry_report_description,
-        link: '/reports',
-        icon: 'tz-icon approve',
-        isStatic: true,
-    }, {
-        id: MATERIALS_REG_ID,
-        title: t.materials_reg_title,
-        description: '',
-        link: '/registers/' + MATERIALS_REG_ID,
-        icon: 'tz-icon invoice-items',
-        isStatic: true,
-        'if-module': 'materials',
-    }, {
-        id: ALLOWANCE_REG_ID,
-        title: t.allowance_reg_title,
-        description: '',
-        link: '/registers/' + ALLOWANCE_REG_ID,
-        icon: 'icon-globe',
-        isStatic: true,
-        'if-module': 'travel',
-    }];
+    return [
+        {
+            id: USERS_REG_ID,
+            title: t.Users,
+            description: t.registry_user_description,
+            link: '/users',
+            icon: 'tz-icon users',
+            isStatic: true,
+        },
+        {
+            id: SHIFTS_REG_ID,
+            title: t.Shifts,
+            description: t.registry_shift_description,
+            link: '/shifts',
+            icon: 'tz-icon plan',
+            isStatic: true,
+        },
+        {
+            id: REPORTS_REG_ID,
+            title: t.Timereports,
+            description: t.registry_report_description,
+            link: '/reports',
+            icon: 'tz-icon approve',
+            isStatic: true,
+        },
+        {
+            id: MATERIALS_REG_ID,
+            title: t.materials_reg_title,
+            description: '',
+            link: '/registers/' + MATERIALS_REG_ID,
+            icon: 'tz-icon invoice-items',
+            isStatic: true,
+            'if-module': 'materials',
+        },
+        {
+            id: ALLOWANCE_REG_ID,
+            title: t.allowance_reg_title,
+            description: '',
+            link: '/registers/' + ALLOWANCE_REG_ID,
+            icon: 'icon-globe',
+            isStatic: true,
+            'if-module': 'travel',
+        },
+    ];
 };
 
 // Field instances
@@ -67,7 +73,8 @@ exports.registryFields = function registryFields(t) {
             weight: 1,
             isStatic: true,
             required: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'username',
@@ -77,7 +84,8 @@ exports.registryFields = function registryFields(t) {
             weight: 2,
             isStatic: true,
             required: true,
-        }, {
+        },
+        {
             'field-id': 'email',
             'field-type': 'string',
             'field-section': 'generic',
@@ -101,7 +109,8 @@ exports.registryFields = function registryFields(t) {
             weight: 4,
             isStatic: true,
             protected: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'department',
@@ -123,7 +132,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_id_no_label,
             weight: 6,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'bank-account',
@@ -135,7 +145,8 @@ exports.registryFields = function registryFields(t) {
             settings: {
                 nogroup: true,
             },
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'company',
@@ -145,7 +156,8 @@ exports.registryFields = function registryFields(t) {
             weight: 8,
             isStatic: true,
             protected: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'country-code',
@@ -154,7 +166,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_country_code,
             weight: 9,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'phone',
             id: 'mobile',
@@ -163,7 +176,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_mobile_phone,
             weight: 10,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'phone',
             id: 'work-phone',
@@ -172,7 +186,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_work_phone,
             weight: 11,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'phone',
             id: 'home-phone',
@@ -181,7 +196,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_home_phone,
             weight: 12,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'address',
@@ -190,7 +206,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_address_column,
             weight: 13,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'zip',
@@ -199,7 +216,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_zip_column,
             weight: 14,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'city',
@@ -208,7 +226,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_city_column,
             weight: 15,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'relative-name',
@@ -217,7 +236,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_relative_name_column,
             weight: 16,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'relative-phone',
@@ -226,7 +246,8 @@ exports.registryFields = function registryFields(t) {
             title: t.user_relative_phone_column,
             weight: 17,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-text',
             'field-type': 'text',
             id: 'notes',
@@ -239,7 +260,8 @@ exports.registryFields = function registryFields(t) {
             settings: {
                 nogroup: true,
             },
-        }, {
+        },
+        {
             'field-id': 'user-start-date',
             'field-type': 'date',
             id: 'start',
@@ -253,7 +275,8 @@ exports.registryFields = function registryFields(t) {
             settings: {
                 nogroup: true,
             },
-        }, {
+        },
+        {
             'field-id': 'user-end-date',
             'field-type': 'date',
             id: 'end',
@@ -267,7 +290,8 @@ exports.registryFields = function registryFields(t) {
             settings: {
                 nogroup: true,
             },
-        }, {
+        },
+        {
             'field-id': 'user-may-view-all-schedules',
             'field-type': 'boolean',
             id: 'may-view-all-schedules',
@@ -293,7 +317,8 @@ exports.registryFields = function registryFields(t) {
             title: t.shift_startend_field,
             weight: 1,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'breaks',
             'field-type': 'breaks',
             id: 'shift-breaks',
@@ -302,7 +327,8 @@ exports.registryFields = function registryFields(t) {
             title: t.Breaks,
             weight: 2,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-number',
             'field-type': 'number',
             id: 'shift-duplicity',
@@ -325,7 +351,8 @@ exports.registryFields = function registryFields(t) {
             title: t.shift_startend_field,
             weight: 0,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'avail-title',
@@ -345,7 +372,8 @@ exports.registryFields = function registryFields(t) {
             title: t.shift_startend_field,
             weight: 1,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'breaks',
             'field-type': 'breaks',
             id: 'report-breaks',
@@ -354,7 +382,8 @@ exports.registryFields = function registryFields(t) {
             title: t.Breaks,
             weight: 2,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'materials',
             'field-type': 'materials',
             id: 'report-materials',
@@ -376,7 +405,8 @@ exports.registryFields = function registryFields(t) {
             title: t.Name,
             weight: -100,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'sku',
@@ -385,7 +415,8 @@ exports.registryFields = function registryFields(t) {
             title: t.SKU,
             weight: 1,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'unit',
@@ -394,7 +425,8 @@ exports.registryFields = function registryFields(t) {
             title: t.article_unit,
             weight: 2,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-number',
             'field-type': 'number',
             id: 'price',
@@ -403,7 +435,8 @@ exports.registryFields = function registryFields(t) {
             title: t.Price,
             weight: 3,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'currency',
@@ -424,7 +457,8 @@ exports.registryFields = function registryFields(t) {
             title: t['Salary code'],
             weight: 1,
             isStatic: true,
-        }, {
+        },
+        {
             'field-id': 'default-string',
             'field-type': 'string',
             id: 'payroll-amount',

@@ -1,18 +1,17 @@
 // Don't change the import/export syntax. Needs to be working with nodejs.
 // Maybe on next LTS release we will be able to change this.
-'use strict';
-var forEach = require('lodash/forEach');
-var isUndefined = require('lodash/isUndefined');
-var flow = require('lodash/fp/flow');
-var sortBy = require('lodash/fp/sortBy');
-var reduce = require('lodash/fp/reduce');
+import forEach from 'lodash/forEach';
+import isUndefined from 'lodash/isUndefined';
+import flow from 'lodash/fp/flow';
+import sortBy from 'lodash/fp/sortBy';
+import reduce from 'lodash/fp/reduce';
 
-var DEFAULT_LIFETIME = 120000;
-var DEFAULT_MAXSIZE = 1024;
+const DEFAULT_LIFETIME = 120000;
+const DEFAULT_MAXSIZE = 1024;
 
-var caches = {};
+const caches: Record<string, any> = {};
 var nextId = 1;
-var gcInterval = null;
+var gcInterval: number | null = null;
 
 function gc() {
     var now = new Date().getTime();
