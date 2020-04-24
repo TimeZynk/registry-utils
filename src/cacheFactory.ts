@@ -1,5 +1,3 @@
-// Don't change the import/export syntax. Needs to be working with nodejs.
-// Maybe on next LTS release we will be able to change this.
 import forEach from 'lodash/forEach';
 import isUndefined from 'lodash/isUndefined';
 import flow from 'lodash/fp/flow';
@@ -10,13 +8,13 @@ const DEFAULT_LIFETIME = 120000;
 const DEFAULT_MAXSIZE = 1024;
 
 const caches: Record<string, any> = {};
-var nextId = 1;
-var gcInterval: number | null = null;
+let nextId = 1;
+let gcInterval: number | null = null;
 
-function gc() {
-    var now = new Date().getTime();
+function gc(): void {
+    const now = new Date().getTime();
     forEach(caches, function (c, id) {
-        var limit = now - c.lifetime;
+        const limit = now - c.lifetime;
         c.vacuum();
         if (c.ts < limit) {
             delete caches[id];
@@ -24,32 +22,41 @@ function gc() {
     });
 }
 
-function cacheFactory(name, lifetime, maxSize) {
-    lifetime = lifetime || DEFAULT_LIFETIME;
-    maxSize = maxSize || DEFAULT_MAXSIZE;
-    var cacheId = name + '-' + nextId;
+interface Cache {
+    get(id: string): any;
+    evict(id: string): Cache;
+    set(id: string, item: any): any;
+    flush(): Cache;
+}
+
+export function cacheFactory(
+    name: string,
+    lifetime: number = DEFAULT_LIFETIME,
+    maxSize: number = DEFAULT_MAXSIZE
+): Cache {
+    const cacheId = name + '-' + nextId;
     nextId += 1;
-    var data = {};
-    var used = {};
+    let data: Record<string, any> = {};
+    let used: Record<string, any> = {};
 
     if (!gcInterval) {
         gcInterval = setInterval(gc, 60000);
     }
 
-    function mostRecentlyUsed(entry) {
-        var ts = entry[1];
+    function mostRecentlyUsed(entry: [string, number]): number {
+        const ts = entry[1];
         return -ts;
     }
 
-    function vacuum() {
-        var limit = new Date() - lifetime;
-        var size = 0;
+    function vacuum(): void {
+        const limit = Date.now() - lifetime;
+        let size = 0;
 
-        var tmpData = flow(
+        const tmpData = flow(
             sortBy(mostRecentlyUsed),
-            reduce(function (acc, entry) {
-                var id = entry[0];
-                var ts = entry[1];
+            reduce(function (acc: Record<string, any>, entry) {
+                const id = entry[0];
+                const ts = entry[1];
                 if (size < maxSize && (ts || 0) > limit) {
                     acc[id] = data[id];
                     size += 1;
@@ -64,11 +71,11 @@ function cacheFactory(name, lifetime, maxSize) {
     }
 
     return {
-        get: function(id) {
-            var item = data[id];
+        get(id: string): any {
+            const item = data[id];
             if (!isUndefined(item)) {
-                var now = new Date();
-                if (used[id][1] > (now - lifetime)) {
+                const now = new Date();
+                if (used[id][1] > now - lifetime) {
                     used[id][1] = now;
                     caches[cacheId] = {
                         lifetime: lifetime,
@@ -84,7 +91,7 @@ function cacheFactory(name, lifetime, maxSize) {
             return null;
         },
 
-        evict: function(id) {
+        evict(id: string): Cache {
             if (id) {
                 delete data[id];
                 delete used[id];
@@ -93,8 +100,8 @@ function cacheFactory(name, lifetime, maxSize) {
             return this;
         },
 
-        set: function(id, item) {
-            var ts = new Date().getTime();
+        set(id: string, item: any): any {
+            const ts = new Date().getTime();
 
             data[id] = item;
             used[id] = [id, ts];
@@ -107,12 +114,10 @@ function cacheFactory(name, lifetime, maxSize) {
             return item;
         },
 
-        flush: function() {
+        flush(): Cache {
             data = [];
             used = [];
             return this;
         },
     };
 }
-
-module.exports = cacheFactory;

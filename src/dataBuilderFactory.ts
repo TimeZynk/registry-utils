@@ -1,19 +1,18 @@
-// Don't change the import/export syntax. Needs to be working with nodejs.
-// Maybe on next LTS release we will be able to change this.
+/* eslint-disable @typescript-eslint/no-use-before-define */
+import Immutable from 'immutable';
+import { defaultMemoize } from 'reselect'; // eslint-disable-li;
+import isNil from 'lodash/isNil';
+import isString from 'lodash/isString';
+import _isEmpty from 'lodash/isEmpty';
+import { defaultRegisters } from './defaultRegisters';
+import { cacheFactory } from './cacheFactory';
 
-var Immutable = require('immutable');
-var defaultMemoize = require('reselect').defaultMemoize; // eslint-disable-line
-var isNil = require('lodash/isNil');
-var isString = require('lodash/isString');
-var _isEmpty = require('lodash/isEmpty');
-var defaultRegisters = require('./defaultRegisters');
-var cacheFactory = require('./cacheFactory');
+const cache = cacheFactory('fieldData');
+let visited: Record<string, boolean> = {};
 
-var cache = cacheFactory('fieldData');
-var visited = {};
-
-function byPriority(fi) {
-    const weight = fi.get('weight');
+function byPriority(value: unknown): number {
+    const fi = value as Immutable.Map<string, any>;
+    const weight: number = fi.get('weight');
 
     if (fi.get('archived')) {
         return -10000 + weight;
@@ -22,24 +21,24 @@ function byPriority(fi) {
     const registryId = fi.get('registry-id');
 
     switch (registryId) {
-    case defaultRegisters.REPORTS_REG_ID:
-        return 10000 + weight;
-    case defaultRegisters.SHIFTS_REG_ID:
-        return 1000 + weight;
-    default:
-        return weight;
+        case defaultRegisters.REPORTS_REG_ID:
+            return 10000 + weight;
+        case defaultRegisters.SHIFTS_REG_ID:
+            return 1000 + weight;
+        default:
+            return weight;
     }
 }
 
-function merger(prev, next) {
+function merger(prev: any, next?: any): Immutable.Collection<any, any> {
     if (Immutable.List.isList(prev)) {
-        return prev.concat(next);
+        return (prev as Immutable.List<any>).concat(next);
     }
     if (Immutable.Map.isMap(prev)) {
-        return prev.mergeWith(merger, next);
+        return (prev as Immutable.Map<any, any>).mergeWith(merger, next);
     }
     if (Immutable.Set.isSet(prev)) {
-        return prev.union(next);
+        return (prev as Immutable.Set<any>).union(next);
     }
 
     return isNil(next) ? prev : next;
@@ -80,6 +79,10 @@ function getValue(item, values, fi) {
     return isNil(value) ? item.get(id) : value;
 }
 
+interface DataBuilder {
+    (item: Immutable.Map<string, any>): Immutable.Map<string, any> | null;
+}
+
 /**
  *  Create a new dataBuilder function.
  * @param {Immutable.Map} regFields Registry fields
@@ -88,8 +91,14 @@ function getValue(item, values, fi) {
  * @param {Immutable.Map} invoiceArticles Invoice articles (optional)
  * @param {Immutable.Map} salaryArticles Salary articles (optional)
  */
-function dataBuilderFactory(regFields, regData, users, invoiceArticles, salaryArticles) {
-    const fieldInstances = (regFields && regFields.sortBy ? regFields : Immutable.List()).sortBy(byPriority);
+function dataBuilderFactory(
+    regFields: Immutable.Map<string, Immutable.Map<string, any>>,
+    regData: Immutable.Map<string, Immutable.Map<string, any>>,
+    users: Immutable.Map<string, Immutable.Map<string, any>>,
+    invoiceArticles?: Immutable.Map<string, Immutable.Map<string, any>>,
+    salaryArticles?: Immutable.Map<string, Immutable.Map<string, any>>
+): DataBuilder {
+    const fieldInstances = (regFields && regFields.sortBy ? regFields : Immutable.Map()).sortBy(byPriority);
     cache && cache.flush && cache.flush();
 
     function mergeUserValues(acc, id) {
@@ -144,7 +153,10 @@ function dataBuilderFactory(regFields, regData, users, invoiceArticles, salaryAr
         return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
     }
 
-    function mergeValues(acc, item) {
+    function mergeValues(
+        acc: Immutable.Map<string, any>,
+        item: Immutable.Map<string, any>
+    ): Immutable.Map<string, any> {
         if (!item || !item.get) {
             return acc;
         }
@@ -202,7 +214,7 @@ function dataBuilderFactory(regFields, regData, users, invoiceArticles, salaryAr
      * Process field references after everything else is resolved
      * @param {*} refData
      */
-    function resolveFieldReferences(refData) {
+    function resolveFieldReferences(refData: Immutable.Map<string, any>): Immutable.Map<string, any> {
         if (!refData || refData.isEmpty()) {
             return refData;
         }
@@ -222,7 +234,7 @@ function dataBuilderFactory(regFields, regData, users, invoiceArticles, salaryAr
             .asImmutable();
     }
 
-    return function (item) {
+    return (item: Immutable.Map<string, any>): Immutable.Map<string, any> | null => {
         if (!item || !item.get) {
             return null;
         }
@@ -238,7 +250,7 @@ function dataBuilderFactory(regFields, regData, users, invoiceArticles, salaryAr
 
         visited = {};
 
-        let data = mergeValues(Immutable.Map().asMutable(), item);
+        let data = mergeValues(Immutable.Map<string, any>().asMutable(), item);
         data = resolveFieldReferences(data);
         const userId = item.get('user-id');
         const bookedUsers = item.get('booked-users');
@@ -262,7 +274,6 @@ function dataBuilderFactory(regFields, regData, users, invoiceArticles, salaryAr
     };
 }
 
-module.exports = {
-    dataBuilderFactory: dataBuilderFactory,
-    memoizedDataBuilderFactory: defaultMemoize(dataBuilderFactory),
-};
+const memoizedDataBuilderFactory = defaultMemoize(dataBuilderFactory);
+
+export { dataBuilderFactory, memoizedDataBuilderFactory };
