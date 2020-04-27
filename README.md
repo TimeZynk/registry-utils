@@ -1,3 +1,11 @@
-# registry-utils
+![npm](https://img.shields.io/npm/v/timezynk-registry-utils?style=for-the-badge)
 
-Unfortunately, since this project is used both by node and by IE11 we have to stick with vanilla ES5.
+# Registry utils
+
+Utils for working with Timezynk registry structure.
+
+## Usage
+
+```javascript
+import { dataBuilderFactory, registryDefaultData, defaultRegisters } from 'timezynk-registry-utils';
+```

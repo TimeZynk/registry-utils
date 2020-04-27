@@ -1,27 +1,46 @@
 {
-  "name": "timezynk-registry-utils",
-  "version": "0.2.0",
-  "description": "Utilities for working with Timezynk registries.",
-  "repository": {
-    "type": "git",
-    "url": "git@github.com:TimeZynk/registry-utils.git"
-  },
-  "main": "src/index.js",
-  "scripts": {
-    "test": "jest",
-    "lint": "eslint src --ext .js"
-  },
-  "dependencies": {
-    "immutable": "^3.8.2",
-    "lodash": "^4.17.10",
-    "reselect": "^4.0.0"
-  },
-  "devDependencies": {
-    "babel-eslint": "^10.1.0",
-    "eslint": "^6.8.0",
-    "eslint-plugin-es5": "^1.5.0",
-    "jest": "^25.3.0"
-  },
-  "author": "Timezynk AB",
-  "license": "MIT"
+    "name": "timezynk-registry-utils",
+    "version": "0.2.0",
+    "description": "Utilities for working with Timezynk registries.",
+    "repository": {
+        "type": "git",
+        "url": "git@github.com:TimeZynk/registry-utils.git"
+    },
+    "files": [
+        "lib/**/*"
+    ],
+    "main": "lib/index.js",
+    "types": "lib/index.d.ts",
+    "scripts": {
+        "prepare": "npm run build",
+        "prepublishOnly": "npm test && npm run lint",
+        "preversion": "npm run lint",
+        "version": "npm run format && git add -A src",
+        "postversion": "git push && git push --tags",
+        "format": "prettier --write \"src/**/*.ts\"",
+        "test": "jest",
+        "build": "tsc",
+        "lint": "eslint src --ext .ts"
+    },
+    "dependencies": {
+        "immutable": "^3.8.2",
+        "lodash": "^4.17.10",
+        "reselect": "^4.0.0"
+    },
+    "devDependencies": {
+        "@types/jest": "^25.2.1",
+        "@types/lodash": "^4.14.150",
+        "@typescript-eslint/eslint-plugin": "^2.28.0",
+        "@typescript-eslint/parser": "^2.28.0",
+        "babel-eslint": "^10.1.0",
+        "eslint": "^6.8.0",
+        "eslint-config-prettier": "^6.10.1",
+        "eslint-plugin-prettier": "^3.1.3",
+        "jest": "^25.3.0",
+        "prettier": "^2.0.5",
+        "ts-jest": "^25.4.0",
+        "typescript": "^3.8.3"
+    },
+    "author": "Timezynk AB",
+    "license": "MIT"
 }

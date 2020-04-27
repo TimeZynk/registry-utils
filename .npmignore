@@ -1,1 +1,6 @@
-*.test.js
+.eslintrc.js
+.prettierrc.json
+*.test.ts
+jest.config.js
+src
+tsconfig.json
