@@ -61,7 +61,7 @@ export function cacheFactory(
 
         const tmpData = flow(
             sortBy(mostRecentlyUsed),
-            reduce(function (acc: Record<string, any>, entry) {
+            reduce(function (acc: Record<string, any>, entry: [string, number]) {
                 const id = entry[0];
                 const ts = entry[1];
                 if (size < maxSize && (ts || 0) > limit) {

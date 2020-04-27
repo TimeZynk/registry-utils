@@ -171,7 +171,9 @@ describe('dataBuilderFactory', () => {
                 })
             );
             expect(refData?.getIn(['generic', 'invoice-article-reference'])).toEqual('5ea192366645aa73da2f59b9');
-            expect(refData?.getIn(['5ea14bad6645aa73da2f59b7', 'sku'])).toStrictEqual('001');
+            expect(refData?.get('5ea14bad6645aa73da2f59b7')).toStrictEqual('5ea192366645aa73da2f59b9');
+            expect(refData?.getIn(['articles', 'invoice', 'id'])).toStrictEqual('5ea192366645aa73da2f59b9');
+            expect(refData?.getIn(['articles', 'invoice', 'sku'])).toStrictEqual('001');
         });
 
         it('sets field to zero if article is unresolved', () => {
@@ -184,7 +186,8 @@ describe('dataBuilderFactory', () => {
                     }),
                 })
             );
-            expect(refData?.get('5ea14bad6645aa73da2f59b7')).toBeNull();
+            expect(refData?.get('5ea14bad6645aa73da2f59b7')).toStrictEqual('555555555555555555555555');
+            expect(refData?.getIn(['articles', 'invoice', 'sku'])).toBeUndefined();
         });
 
         it('can resolve code of salary article', () => {
@@ -198,7 +201,10 @@ describe('dataBuilderFactory', () => {
                 })
             );
             expect(refData?.getIn(['generic', 'salary-article-reference'])).toEqual('5ea2ecee3743cd6ce0257314');
-            expect(refData?.getIn(['5ea2ed39c9d26a4c5cfeb921', 'code'])).toStrictEqual('ARB');
+            expect(refData?.getIn(['5ea2ed39c9d26a4c5cfeb921'])).toStrictEqual('5ea2ecee3743cd6ce0257314');
+            expect(refData?.getIn(['articles', 'invoice', 'sku'])).toBeUndefined();
+            expect(refData?.getIn(['articles', 'salary', 'id'])).toStrictEqual('5ea2ecee3743cd6ce0257314');
+            expect(refData?.getIn(['articles', 'salary', 'code'])).toStrictEqual('ARB');
         });
 
         it('no cross-wise resolving', () => {
@@ -212,7 +218,9 @@ describe('dataBuilderFactory', () => {
                 })
             );
             expect(refData?.getIn(['generic', 'salary-article-reference'])).toEqual('5ea192366645aa73da2f59b9');
-            expect(refData?.getIn(['5ea2ed39c9d26a4c5cfeb921'])).toBeNull();
+            expect(refData?.getIn(['5ea2ed39c9d26a4c5cfeb921'])).toEqual('5ea192366645aa73da2f59b9');
+            expect(refData?.getIn(['articles', 'invoice', 'sku'])).toBeUndefined();
+            expect(refData?.getIn(['articles', 'salary', 'code'])).toBeUndefined();
         });
     });
 });

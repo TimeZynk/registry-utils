@@ -199,12 +199,26 @@ function dataBuilderFactory(
             } else if (fieldType === 'user-reference') {
                 nextAcc = mergeUserValues(nextAcc, v);
             } else if (fieldType === 'article-reference') {
-                const type = fi.getIn(['settings', 'article-type']);
-                const article =
-                    type === 'salary'
-                        ? salaryArticles && salaryArticles.get(v)
-                        : invoiceArticles && invoiceArticles.get(v);
-                nextAcc = nextAcc.set(id, article || null);
+                const type = fi.getIn(['settings', 'article-type']) || 'invoice';
+                if (type === 'salary') {
+                    const article = salaryArticles?.get(v);
+                    nextAcc = nextAcc.setIn(
+                        ['articles', type],
+                        Immutable.Map({
+                            id: article?.get('id'),
+                            code: article?.get('code'),
+                        })
+                    );
+                } else {
+                    const article = invoiceArticles?.get(v);
+                    nextAcc = nextAcc.setIn(
+                        ['articles', type],
+                        Immutable.Map({
+                            id: article?.get('id'),
+                            sku: article?.get('sku'),
+                        })
+                    );
+                }
             }
 
             return nextAcc;
