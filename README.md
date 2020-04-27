@@ -6,7 +6,6 @@ Utils for working with Timezynk registry structure.
 
 ## Usage
 
-```
-#javascript
+```javascript
 import { dataBuilderFactory, registryDefaultData, defaultRegisters } from 'timezynk-registry-utils';
 ```
