@@ -1,10 +1,7 @@
-var dataBuilderFactory = require('./dataBuilderFactory').memoizedDataBuilderFactory;
-var registryDefaultData = require('./registryDefaultData');
-var defaultRegisters = require('./defaultRegisters');
+import { dataBuilderFactory } from './dataBuilderFactory';
+import * as registryDefaultData from './registryDefaultData';
+import { defaultRegisters } from './defaultRegisters';
 
-module.exports = {
-    dataBuilderFactory: dataBuilderFactory,
-    registryDefaultData: registryDefaultData,
-    defaultRegisters: defaultRegisters,
-    default: dataBuilderFactory,
-};
+export { dataBuilderFactory, registryDefaultData, defaultRegisters };
+
+export default dataBuilderFactory;

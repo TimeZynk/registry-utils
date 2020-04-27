@@ -79,7 +79,7 @@ function getValue(item, values, fi) {
     return isNil(value) ? item.get(id) : value;
 }
 
-interface DataBuilder {
+export interface DataBuilder {
     (item: Immutable.Map<string, any>): Immutable.Map<string, any> | null;
 }
 
@@ -92,16 +92,18 @@ interface DataBuilder {
  * @param {Immutable.Map} salaryArticles Salary articles (optional)
  */
 function dataBuilderFactory(
-    regFields: Immutable.Map<string, Immutable.Map<string, any>>,
+    regFields: Immutable.Map<string, Immutable.Map<string, any>> | undefined,
     regData: Immutable.Map<string, Immutable.Map<string, any>>,
     users: Immutable.Map<string, Immutable.Map<string, any>>,
     invoiceArticles?: Immutable.Map<string, Immutable.Map<string, any>>,
     salaryArticles?: Immutable.Map<string, Immutable.Map<string, any>>
 ): DataBuilder {
-    const fieldInstances = (regFields && regFields.sortBy ? regFields : Immutable.Map()).sortBy(byPriority);
+    const fieldInstances = regFields
+        ? regFields.sortBy(byPriority)
+        : Immutable.Map<string, Immutable.Map<string, any>>();
     cache && cache.flush && cache.flush();
 
-    function mergeUserValues(acc, id) {
+    function mergeUserValues(acc: Immutable.Map<string, any>, id: string): Immutable.Map<string, any> {
         let referencedValues = cache.get(id);
 
         if (users && !referencedValues && !visited[id]) {
@@ -125,7 +127,7 @@ function dataBuilderFactory(
         return referencedValues ? acc.mergeWith(weakMerger, referencedValues) : acc;
     }
 
-    function mergeRegistryValues(acc, id) {
+    function mergeRegistryValues(acc: Immutable.Map<string, any>, id: string): Immutable.Map<string, any> {
         let referencedValues = cache.get(id);
 
         if (!referencedValues && !visited[id]) {
@@ -163,7 +165,9 @@ function dataBuilderFactory(
         const values = item.get('values') || Immutable.Map();
         const registryId = item.get('registry-id');
 
-        const refData = fieldInstances.reduce(function (innerAcc, fi) {
+        const refData = fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
+            const innerAcc = reduction as Immutable.Map<string, any>;
+            const fi = maybeFieldInstance as Immutable.Map<string, any>;
             if (registryId && registryId !== fi.get('registry-id')) {
                 return innerAcc;
             }
@@ -219,7 +223,9 @@ function dataBuilderFactory(
             return refData;
         }
         return fieldInstances
-            .reduce(function (innerAcc, fi) {
+            .reduce((reduction: unknown, item: unknown) => {
+                const innerAcc = reduction as Immutable.Map<string, any>;
+                const fi = item as Immutable.Map<string, any>;
                 if (fi.get('field-type') !== 'field-reference') {
                     return innerAcc;
                 }

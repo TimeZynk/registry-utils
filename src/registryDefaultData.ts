@@ -1,17 +1,17 @@
 // Don't change the import/export syntax. Needs to be working with nodejs.
 // Maybe on next LTS release we will be able to change this.
 
-var defaultRegisters = require('./defaultRegisters');
+import { defaultRegisters } from './defaultRegisters';
 
-var ALLOWANCE_REG_ID = defaultRegisters.ALLOWANCE_REG_ID;
-var AVAIL_REG_ID = defaultRegisters.AVAIL_REG_ID;
-var MATERIALS_REG_ID = defaultRegisters.MATERIALS_REG_ID;
-var REPORTS_REG_ID = defaultRegisters.REPORTS_REG_ID;
-var SHIFTS_REG_ID = defaultRegisters.SHIFTS_REG_ID;
-var USERS_REG_ID = defaultRegisters.USERS_REG_ID;
+const ALLOWANCE_REG_ID = defaultRegisters.ALLOWANCE_REG_ID;
+const AVAIL_REG_ID = defaultRegisters.AVAIL_REG_ID;
+const MATERIALS_REG_ID = defaultRegisters.MATERIALS_REG_ID;
+const REPORTS_REG_ID = defaultRegisters.REPORTS_REG_ID;
+const SHIFTS_REG_ID = defaultRegisters.SHIFTS_REG_ID;
+const USERS_REG_ID = defaultRegisters.USERS_REG_ID;
 
-exports.registers = function registers(t) {
-    t = t || window.t;
+export function registers(t: Record<string, string>): Record<string, any>[] {
+    t = t || (window as any).t;
     return [
         {
             id: USERS_REG_ID,
@@ -56,11 +56,11 @@ exports.registers = function registers(t) {
             'if-module': 'travel',
         },
     ];
-};
+}
 
 // Field instances
-exports.registryFields = function registryFields(t) {
-    t = t || window.t;
+export function registryFields(t: Record<string, string>): Record<string, any>[] {
+    t = t || (window as any).t;
     return [
         /* User registry fields */
         {
@@ -469,4 +469,4 @@ exports.registryFields = function registryFields(t) {
             isStatic: true,
         },
     ];
-};
+}

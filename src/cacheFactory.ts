@@ -29,6 +29,13 @@ interface Cache {
     flush(): Cache;
 }
 
+export function stopCache(): void {
+    if (gcInterval) {
+        clearInterval(gcInterval);
+        gcInterval = null;
+    }
+}
+
 export function cacheFactory(
     name: string,
     lifetime: number = DEFAULT_LIFETIME,
@@ -37,7 +44,7 @@ export function cacheFactory(
     const cacheId = name + '-' + nextId;
     nextId += 1;
     let data: Record<string, any> = {};
-    let used: Record<string, any> = {};
+    let used: Record<string, [string, number]> = {};
 
     if (!gcInterval) {
         gcInterval = setInterval(gc, 60000);
@@ -74,7 +81,7 @@ export function cacheFactory(
         get(id: string): any {
             const item = data[id];
             if (!isUndefined(item)) {
-                const now = new Date();
+                const now = Date.now();
                 if (used[id][1] > now - lifetime) {
                     used[id][1] = now;
                     caches[cacheId] = {
@@ -116,7 +123,7 @@ export function cacheFactory(
 
         flush(): Cache {
             data = [];
-            used = [];
+            used = {};
             return this;
         },
     };
