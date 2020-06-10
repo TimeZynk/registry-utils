@@ -1,6 +1,6 @@
 {
     "name": "timezynk-registry-utils",
-    "version": "0.4.1",
+    "version": "0.4.2",
     "description": "Utilities for working with Timezynk registries.",
     "repository": {
         "type": "git",
