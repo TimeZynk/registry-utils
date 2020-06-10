@@ -72,7 +72,15 @@ describe('dataBuilderFactory', () => {
         }),
     });
 
-    const users = Immutable.Map<string, Immutable.Map<string, any>>();
+    const users = Immutable.Map<string, Immutable.Map<string, any>>({
+        USER1: Immutable.Map({
+            id: 'USER1',
+            name: 'User 1',
+            values: Immutable.Map({
+                '5e96f46794237e07620f914d': '5e96f48b94237e07620f914f',
+            }),
+        }),
+    });
 
     describe('field-references', () => {
         const regData = Immutable.Map({
@@ -136,6 +144,18 @@ describe('dataBuilderFactory', () => {
             );
             expect(refData?.get('5e96f4d994237e07620f9151')).toStrictEqual(98);
             expect(refData?.get('5e96e3b3c37c4a58ef75dff8')).toStrictEqual(98);
+        });
+
+        it('Can fallback to field references from user', () => {
+            const refData = dataBuilder(
+                Immutable.Map({
+                    values: Immutable.Map({
+                        '5e96e355b0bef821551bcd57': '5e96e38bb0bef821551bcd59',
+                    }),
+                    'user-id': 'USER1',
+                })
+            );
+            expect(refData?.get('5e96f4d994237e07620f9151')).toStrictEqual(98);
         });
     });
 

@@ -271,7 +271,6 @@ function dataBuilderFactory(
         visited = {};
 
         let data = mergeValues(Immutable.Map<string, any>().asMutable(), item);
-        data = resolveFieldReferences(data);
         const userId = item.get('user-id');
         const bookedUsers = item.get('booked-users');
 
@@ -282,7 +281,7 @@ function dataBuilderFactory(
         if (bookedUsers && !bookedUsers.isEmpty()) {
             data = bookedUsers.reduce(mergeUserValues, data);
         }
-
+        data = resolveFieldReferences(data);
         data = data.remove('_visited');
         data = data.asImmutable();
 
