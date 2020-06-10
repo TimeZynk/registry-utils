@@ -44,20 +44,20 @@ function merger(prev: any, next?: any): Immutable.Collection<any, any> {
     return isNil(next) ? prev : next;
 }
 
-function weakMerger(prev, next) {
+function weakMerger(prev: any, next: any): Immutable.Collection<any, any> {
     if (Immutable.List.isList(prev)) {
-        return prev.concat(next);
+        return (prev as Immutable.List<any>).concat(next);
     }
     if (Immutable.Map.isMap(prev)) {
-        return prev.mergeWith(weakMerger, next);
+        return (prev as Immutable.Map<any, any>).mergeWith(weakMerger, next);
     }
     if (Immutable.Set.isSet(prev)) {
-        return prev.union(next);
+        return (prev as Immutable.Set<any>).union(next);
     }
     return prev;
 }
 
-function isEmpty(v) {
+function isEmpty(v: any): boolean {
     if (isNil(v) || (isString(v) && _isEmpty(v))) {
         return true;
     }
@@ -67,16 +67,25 @@ function isEmpty(v) {
     return false;
 }
 
-function getValue(item, values, fi) {
+function getValue(
+    item: Immutable.Map<string, any>,
+    values: Immutable.Map<string, any>,
+    fi: Immutable.Map<string, any>
+): any {
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
     }
 
     const id = fi.get('id');
-    const value = values.get(id);
-
-    return isNil(value) ? item.get(id) : value;
+    let value = values.get(id);
+    if (isNil(value)) {
+        value = item.get(id);
+    }
+    if (isNil(value)) {
+        value = fi.getIn(['values', 'default-val']);
+    }
+    return value;
 }
 
 export interface DataBuilder {

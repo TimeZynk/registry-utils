@@ -8,8 +8,8 @@ describe('dataBuilderFactory', () => {
     });
 
     const fields = Immutable.Map({
-        '5e96e019758f29f06c8565e2': Immutable.Map({
-            id: '5e96e019758f29f06c8565e2',
+        GENERIC_FIELD_REF: Immutable.Map({
+            id: 'GENERIC_FIELD_REF',
             'field-id': 'field-reference-numeric',
             'field-type': 'field-reference',
             'field-section': 'generic',
@@ -20,55 +20,79 @@ describe('dataBuilderFactory', () => {
             'field-type': 'number',
             'field-section': 'generic',
         }),
-        '5e96e355b0bef821551bcd57': Immutable.Map({
-            id: '5e96e355b0bef821551bcd57',
-            'field-id': 'registry-5e96e36fb0bef821551bcd58',
+        PRICELIST_REF: Immutable.Map({
+            id: 'PRICELIST_REF',
+            'field-id': 'registry-PRICELIST',
             'field-type': 'registry-reference',
             'field-section': 'registers',
         }),
-        '5e96f46794237e07620f914d': Immutable.Map({
-            id: '5e96f46794237e07620f914d',
-            'field-id': 'registry-5e96f47994237e07620f914e',
+        TASK_REF: Immutable.Map({
+            id: 'TASK_REF',
+            'field-id': 'registry-TASKS',
             'field-type': 'registry-reference',
             'field-section': 'registers',
         }),
-        '5e96e3b3c37c4a58ef75dff8': Immutable.Map({
-            id: '5e96e3b3c37c4a58ef75dff8',
-            'registry-id': '5e96e36fb0bef821551bcd58',
+        HOURLY_PRICE: Immutable.Map({
+            id: 'HOURLY_PRICE',
+            'registry-id': 'PRICELIST',
             'field-id': 'default-number',
             'field-type': 'number',
             'field-section': 'generic',
         }),
         '5e96f4a594237e07620f9150': Immutable.Map({
             id: '5e96f4a594237e07620f9150',
-            'registry-id': '5e96f47994237e07620f914e',
+            'registry-id': 'TASKS',
             'field-id': 'default-number',
             'field-type': 'number',
             'field-section': 'generic',
         }),
-        '5e96f4d994237e07620f9151': Immutable.Map({
-            id: '5e96f4d994237e07620f9151',
-            'registry-id': '5e96f47994237e07620f914e',
+        TASK_PRICELIST_FIELD_REF: Immutable.Map({
+            id: 'TASK_PRICELIST_FIELD_REF',
+            'registry-id': 'TASKS',
             'field-id': 'field-reference-numeric',
             'field-type': 'field-reference',
             'field-section': 'generic',
         }),
         '5ea14bad6645aa73da2f59b7': Immutable.Map({
             id: '5ea14bad6645aa73da2f59b7',
-            'registry-id': '5e96f47994237e07620f914e',
+            'registry-id': 'TASKS',
             'field-id': 'invoice-article-reference',
             'field-type': 'article-reference',
             'field-section': 'generic',
         }),
         '5ea2ed39c9d26a4c5cfeb921': Immutable.Map({
             id: '5ea2ed39c9d26a4c5cfeb921',
-            'registry-id': '5e96f47994237e07620f914e',
+            'registry-id': 'TASKS',
             'field-id': 'salary-article-reference',
             'field-type': 'article-reference',
             'field-section': 'generic',
             settings: Immutable.Map({
                 'article-type': 'salary',
             }),
+        }),
+        PROJECT_CUSTOMER_REF: Immutable.Map({
+            id: 'PROJECT_CUSTOMER_REF',
+            'registry-id': 'PROJECTS',
+            'field-id': 'registry-CUSTOMERS',
+            'field-type': 'registry-reference',
+            'field-section': 'registers',
+            values: Immutable.Map({
+                'default-val': 'CUSTOMER_1',
+            }),
+        }),
+        PROJECTS_PRICELIST_REF: Immutable.Map({
+            id: 'PROJECTS_PRICELIST_REF',
+            'registry-id': 'PROJECTS',
+            'field-id': 'registry-PRICELIST',
+            'field-type': 'registry-reference',
+            'field-section': 'registers',
+        }),
+        CUSTOMER_PRICELIST_FIELD_REF: Immutable.Map({
+            id: 'CUSTOMER_PRICELIST_FIELD_REF',
+            'registry-id': 'CUSTOMERS',
+            'field-id': 'field-reference-numeric',
+            'field-type': 'field-reference',
+            'field-section': 'generic',
         }),
     });
 
@@ -77,26 +101,33 @@ describe('dataBuilderFactory', () => {
             id: 'USER1',
             name: 'User 1',
             values: Immutable.Map({
-                '5e96f46794237e07620f914d': '5e96f48b94237e07620f914f',
+                TASK_REF: 'HOURLY_WORK',
             }),
         }),
     });
 
     describe('field-references', () => {
         const regData = Immutable.Map({
-            '5e96e38bb0bef821551bcd59': Immutable.Map({
-                id: '5e96e38bb0bef821551bcd59',
-                'registry-id': '5e96e36fb0bef821551bcd58',
+            PRICELIST_1: Immutable.Map({
+                id: 'PRICELIST_1',
+                'registry-id': 'PRICELIST',
                 values: Immutable.Map({
-                    '5e96e3b3c37c4a58ef75dff8': 98,
+                    HOURLY_PRICE: 98,
                 }),
             }),
-            '5e96f48b94237e07620f914f': Immutable.Map({
-                id: '5e96f48b94237e07620f914f',
-                'registry-id': '5e96f47994237e07620f914e',
+            HOURLY_WORK: Immutable.Map({
+                id: 'HOURLY_WORK',
+                'registry-id': 'TASKS',
                 values: Immutable.Map({
                     '5e96f4a594237e07620f9150': 105,
-                    '5e96f4d994237e07620f9151': '5e96e3b3c37c4a58ef75dff8',
+                    TASK_PRICELIST_FIELD_REF: 'HOURLY_PRICE',
+                }),
+            }),
+            CUSTOMER_1: Immutable.Map({
+                id: 'CUSTOMER_1',
+                'registry-id': 'CUSTOMERS',
+                values: Immutable.Map({
+                    CUSTOMER_PRICELIST_FIELD_REF: 'HOURLY_PRICE',
                 }),
             }),
         });
@@ -111,12 +142,12 @@ describe('dataBuilderFactory', () => {
                 Immutable.Map({
                     values: Immutable.Map({
                         '5e96dfdf5c8220db1589d9f6': 42,
-                        '5e96e019758f29f06c8565e2': '5e96dfdf5c8220db1589d9f6',
+                        GENERIC_FIELD_REF: '5e96dfdf5c8220db1589d9f6',
                     }),
                 })
             );
             expect(refData?.get('5e96dfdf5c8220db1589d9f6')).toStrictEqual(42);
-            expect(refData?.get('5e96e019758f29f06c8565e2')).toStrictEqual(42);
+            expect(refData?.get('GENERIC_FIELD_REF')).toStrictEqual(42);
         });
 
         it('Can resolve deep field references to same object', () => {
@@ -124,38 +155,62 @@ describe('dataBuilderFactory', () => {
                 Immutable.Map({
                     values: Immutable.Map({
                         '5e96dfdf5c8220db1589d9f6': 42,
-                        '5e96e019758f29f06c8565e2': '5e96e3b3c37c4a58ef75dff8',
-                        '5e96e355b0bef821551bcd57': '5e96e38bb0bef821551bcd59',
+                        GENERIC_FIELD_REF: 'HOURLY_PRICE',
+                        PRICELIST_REF: 'PRICELIST_1',
                     }),
                 })
             );
             expect(refData?.get('5e96dfdf5c8220db1589d9f6')).toStrictEqual(42);
-            expect(refData?.get('5e96e019758f29f06c8565e2')).toStrictEqual(98);
+            expect(refData?.get('GENERIC_FIELD_REF')).toStrictEqual(98);
         });
 
         it('Can resolve field references from siblings', () => {
             const refData = dataBuilder(
                 Immutable.Map({
                     values: Immutable.Map({
-                        '5e96e355b0bef821551bcd57': '5e96e38bb0bef821551bcd59',
-                        '5e96f46794237e07620f914d': '5e96f48b94237e07620f914f',
+                        PRICELIST_REF: 'PRICELIST_1',
+                        TASK_REF: 'HOURLY_WORK',
                     }),
                 })
             );
-            expect(refData?.get('5e96f4d994237e07620f9151')).toStrictEqual(98);
-            expect(refData?.get('5e96e3b3c37c4a58ef75dff8')).toStrictEqual(98);
+            expect(refData?.get('TASK_PRICELIST_FIELD_REF')).toStrictEqual(98);
+            expect(refData?.get('HOURLY_PRICE')).toStrictEqual(98);
         });
 
         it('Can fallback to field references from user', () => {
             const refData = dataBuilder(
                 Immutable.Map({
                     values: Immutable.Map({
-                        '5e96e355b0bef821551bcd57': '5e96e38bb0bef821551bcd59',
+                        PRICELIST_REF: 'PRICELIST_1',
                     }),
                     'user-id': 'USER1',
                 })
             );
-            expect(refData?.get('5e96f4d994237e07620f9151')).toStrictEqual(98);
+            expect(refData?.get('TASK_PRICELIST_FIELD_REF')).toStrictEqual(98);
+        });
+
+        it('Unresolved field reference falls back to undefined', () => {
+            const refData = dataBuilder(
+                Immutable.Map({
+                    values: Immutable.Map({
+                        PRICELIST_REF: null,
+                    }),
+                    'user-id': 'USER1',
+                })
+            );
+            expect(refData?.get('TASK_PRICELIST_FIELD_REF')).toBeUndefined();
+        });
+
+        it('Resolves field references from default registers', () => {
+            const refData = dataBuilder(
+                Immutable.Map({
+                    'registry-id': 'PROJECTS',
+                    values: Immutable.Map({
+                        PROJECTS_PRICELIST_REF: 'PRICELIST_1',
+                    }),
+                })
+            );
+            expect(refData?.get('CUSTOMER_PRICELIST_FIELD_REF')).toStrictEqual(98);
         });
     });
 
@@ -184,7 +239,7 @@ describe('dataBuilderFactory', () => {
             const refData = dataBuilder(
                 Immutable.Map({
                     id: '5ea192066645aa73da2f59b8',
-                    'registry-id': '5e96f47994237e07620f914e',
+                    'registry-id': 'TASKS',
                     values: Immutable.Map({
                         '5ea14bad6645aa73da2f59b7': '5ea192366645aa73da2f59b9',
                     }),
@@ -200,7 +255,7 @@ describe('dataBuilderFactory', () => {
             const refData = dataBuilder(
                 Immutable.Map({
                     id: '5ea198236645aa73da2f59ba',
-                    'registry-id': '5e96f47994237e07620f914e',
+                    'registry-id': 'TASKS',
                     values: Immutable.Map({
                         '5ea14bad6645aa73da2f59b7': '555555555555555555555555',
                     }),
@@ -214,7 +269,7 @@ describe('dataBuilderFactory', () => {
             const refData = dataBuilder(
                 Immutable.Map({
                     id: '5ea192066645aa73da2f59b9',
-                    'registry-id': '5e96f47994237e07620f914e',
+                    'registry-id': 'TASKS',
                     values: Immutable.Map({
                         '5ea2ed39c9d26a4c5cfeb921': '5ea2ecee3743cd6ce0257314',
                     }),
@@ -231,7 +286,7 @@ describe('dataBuilderFactory', () => {
             const refData = dataBuilder(
                 Immutable.Map({
                     id: '5ea192066645aa73da2f59b9',
-                    'registry-id': '5e96f47994237e07620f914e',
+                    'registry-id': 'TASKS',
                     values: Immutable.Map({
                         '5ea2ed39c9d26a4c5cfeb921': '5ea192366645aa73da2f59b9',
                     }),
