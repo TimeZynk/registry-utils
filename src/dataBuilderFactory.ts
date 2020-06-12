@@ -82,7 +82,7 @@ function getValue(
     if (isNil(value)) {
         value = item.get(id);
     }
-    if (isNil(value)) {
+    if (isNil(value) && !fi.get('archived')) {
         value = fi.getIn(['values', 'default-val']);
     }
     return value;
