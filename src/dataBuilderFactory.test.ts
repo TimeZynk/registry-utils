@@ -330,4 +330,37 @@ describe('dataBuilderFactory', () => {
             expect(refData?.getIn(['articles', 'salary', 'code'])).toBeUndefined();
         });
     });
+
+    describe('dataBuilder', () => {
+        let dataBuilder: DataBuilder;
+        it('should use default value if regFields is undefined', () => {
+            const dataBuilderWithUndefinedFields = dataBuilderFactory(
+                undefined,
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map()
+            );
+            const dataBuilderWithEmptyFields = dataBuilderFactory(
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map()
+            );
+
+            expect(dataBuilderWithUndefinedFields(Immutable.Map())).toStrictEqual(Immutable.Map());
+            expect(dataBuilderWithEmptyFields(Immutable.Map())).toStrictEqual(Immutable.Map());
+        });
+        it('return null if item is missing', () => {
+            const dataBuilderWithEmptyFields = dataBuilderFactory(
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map(),
+                Immutable.Map()
+            );
+            expect(dataBuilderWithEmptyFields(null)).toStrictEqual(null);
+        });
+    });
 });
