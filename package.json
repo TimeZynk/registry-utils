@@ -17,7 +17,7 @@
         "version": "npm run format && git add -A src",
         "postversion": "git push && git push --tags",
         "format": "prettier --write \"src/**/*.ts\"",
-        "test": "jest",
+        "test": "TZ=UTC jest",
         "build": "tsc",
         "lint": "eslint src --ext .ts"
     },
@@ -38,7 +38,7 @@
         "jest": "^25.3.0",
         "prettier": "^2.0.5",
         "ts-jest": "^25.4.0",
-        "typescript": "^3.8.3"
+        "typescript": "^3.9.5"
     },
     "author": "Timezynk AB",
     "license": "MIT"

@@ -6,8 +6,10 @@
         "outDir": "./lib",
         "esModuleInterop": true, // Import non-ES modules as default imports
         "strict": true,
-        "noImplicitAny": false
+        "noImplicitAny": false,
+        "sourceMap": true,
+        "alwaysStrict": true
     },
     "include": ["src"],
-    "exclude": ["node_modules", "**/__tests__/*", "**/*.test.ts"]
+    "exclude": ["node_modules", "lib", "**/__tests__/*", "**/*.test.ts"]
 }
