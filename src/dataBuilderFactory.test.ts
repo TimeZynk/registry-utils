@@ -105,6 +105,26 @@ describe('dataBuilderFactory', () => {
             'field-type': 'field-reference',
             'field-section': 'generic',
         }),
+        TIMEREPORT_STARTEND: Immutable.Map({
+            'field-id': 'start-end',
+            'field-type': 'start-end',
+            id: 'report-startend',
+            vid: 'static',
+            'registry-id': 'REPORTS',
+            title: 'Start and end time',
+            weight: 1,
+            isStatic: true,
+        }),
+        TIMEREPORT_BREAKS: Immutable.Map({
+            'field-id': 'breaks',
+            'field-type': 'breaks',
+            id: 'report-breaks',
+            vid: 'static',
+            'registry-id': 'REPORTS',
+            title: 'Breaks',
+            weight: 2,
+            isStatic: true,
+        }),
     });
 
     const users = Immutable.Map<string, Immutable.Map<string, any>>({
@@ -328,6 +348,40 @@ describe('dataBuilderFactory', () => {
             expect(refData?.getIn(['TASK_SALARY_ART_REF'])).toEqual('5ea192366645aa73da2f59b9');
             expect(refData?.getIn(['articles', 'invoice', 'sku'])).toBeUndefined();
             expect(refData?.getIn(['articles', 'salary', 'code'])).toBeUndefined();
+        });
+
+        it('preserves start/end fields', () => {
+            const refData = dataBuilder(
+                Immutable.Map({
+                    id: 'REPORT1',
+                    'registry-id': 'REPORTS',
+                    start: '2020-08-24T08:00:00.000',
+                    end: '2020-08-24T13:21:00.000',
+                    breaks: [{ start: '2020-08-24T10:00:00.000', end: '2020-08-24T10:15:00.000' }],
+                    values: Immutable.Map(),
+                })
+            );
+            expect(refData?.get('start-end').size).toEqual(2);
+            expect(refData?.getIn(['start-end', 0])).toEqual('2020-08-24T08:00:00.000');
+            expect(refData?.getIn(['start-end', 1])).toEqual('2020-08-24T13:21:00.000');
+        });
+
+        it('preserves breaks fields', () => {
+            const refData = dataBuilder(
+                Immutable.Map({
+                    id: 'REPORT1',
+                    'registry-id': 'REPORTS',
+                    start: '2020-08-24T08:00:00.000',
+                    end: '2020-08-24T13:21:00.000',
+                    breaks: Immutable.List([
+                        Immutable.Map({ start: '2020-08-24T10:00:00.000', end: '2020-08-24T10:15:00.000' }),
+                    ]),
+                    values: Immutable.Map(),
+                })
+            );
+            expect(refData?.get('breaks').size).toEqual(1);
+            expect(refData?.getIn(['breaks', 0, 'start'])).toEqual('2020-08-24T10:00:00.000');
+            expect(refData?.getIn(['breaks', 0, 'end'])).toEqual('2020-08-24T10:15:00.000');
         });
     });
 });

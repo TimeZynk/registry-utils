@@ -78,7 +78,18 @@ function getValue(
     }
 
     const id = fi.get('id');
-    let value = values.get(id);
+    let value;
+    switch (fi.get('field-type')) {
+        case 'breaks':
+            value = item.get('breaks');
+            break;
+        case 'start-end':
+            value = Immutable.List([item.get('start'), item.get('end')]);
+            break;
+        default:
+            value = values.get(id);
+            break;
+    }
     if (isNil(value)) {
         value = item.get(id);
     }
