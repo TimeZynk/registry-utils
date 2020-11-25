@@ -385,3 +385,22 @@ describe('dataBuilderFactory', () => {
         });
     });
 });
+
+describe('mob', () => {
+    let dataBuilder: DataBuilder;
+    const fields = Immutable.Map<string, Immutable.Map<string, any>>();
+    const regData = Immutable.Map<string, Immutable.Map<string, any>>();
+    const users = Immutable.Map() as Immutable.Map<string, Immutable.Map<string, any>>;
+
+    // TODO:
+    // 1. don't need registry SALARY_LIST but we need reference to registry (we could just fake 'registry-id')
+    // 2. reference should be in regData
+    // 3. we need a user registry which will contain 'hourly-salary' should have a standart value
+    // 4. get custom 'hourly-salary' value as result
+
+    it('test', () => {
+        dataBuilder = dataBuilderFactory(fields, regData, users);
+        const refData = dataBuilder(Immutable.Map());
+        expect(refData?.get('hourly-salary')).toBeDefined();
+    });
+});
