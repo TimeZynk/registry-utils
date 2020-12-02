@@ -454,11 +454,14 @@ describe('mob', () => {
         })
     })
 
-    // TODO:
-    // 1. don't need registry SALARY_LIST but we need reference to registry (we could just fake 'registry-id')
-    // 2. reference should be in regData
-    // 3. we need a user registry which will contain 'hourly-salary' should have a standart value
-    // 4. get custom 'hourly-salary' value as result
+    // Notes:
+    // -  don't need registry SALARY_LIST but we need reference to registry (we could just fake 'registry-id')
+    // -  reference should be in regData
+    // -  we need a user registry which will contain 'hourly-salary' should have a standart value
+    // -  get custom 'hourly-salary' value as result
+    // - salary list ref should have a default value to fail the test
+    // - the different salary list items need distinct values for salary
+
 
     it('test', () => {
         dataBuilder = dataBuilderFactory(fields, regData, users);
@@ -470,5 +473,6 @@ describe('mob', () => {
             'user-id': 'USER_1'
         }));
         expect(refData?.get('HOURLY_SALARY')).toBeDefined();
+        expect(refData?.get('HOURLY_SALARY')).toEqual(1.1);
     });
 });
