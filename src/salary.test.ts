@@ -23,8 +23,11 @@ describe('mob', () => {
 
 
     let dataBuilder: DataBuilder;
+    type FieldId = string;
+    type Field = Immutable.Map<string, any>;
+    type FieldIndex = Immutable.Map<FieldId, Field>
 
-    const fields = Immutable.Map<string, Immutable.Map<string, any>>(
+    const fields: FieldIndex = Immutable.Map(
         {
             SALARY_LIST_REF: Immutable.Map({
                 id: 'SALARY_LIST_REF',
