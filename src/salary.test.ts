@@ -3,7 +3,6 @@ import { stopCache } from './cacheFactory';
 import { dataBuilderFactory, DataBuilder } from './dataBuilderFactory';
 
 describe('mob', () => {
-
     afterEach(() => {
         stopCache();
     });
@@ -11,7 +10,6 @@ describe('mob', () => {
     //TODO:
     // Use type aliases
     // Use Immutable.fromJS
-    //
 
     // Notes:
     // -  don't need registry SALARY_LIST but we need reference to registry (we could just fake 'registry-id')
@@ -21,85 +19,61 @@ describe('mob', () => {
     // - salary list ref should have a default value to fail the test
     // - the different salary list items need distinct values for salary
 
-
     let dataBuilder: DataBuilder;
     type FieldId = string;
     type Field = Immutable.Map<string, any>;
-    type FieldIndex = Immutable.Map<FieldId, Field>
+    type FieldIndex = Immutable.Map<FieldId, Field>;
+    type RegDataId = string;
+    type RegData = Immutable.Map<string, any>;
+    type RegDataIndex = Immutable.Map<RegDataId, RegData>;
 
-    const fields: FieldIndex = Immutable.fromJS(
-        {
-            SALARY_LIST_REF: {
-                id: 'SALARY_LIST_REF',
-                'registry-id': 'USERS',
-                'title': 'HOURLY_SALARY_REF',
-                'field-type': 'registry-reference',
-                'settings': {
-                    'registry-id': 'SALARY_LIST',
-                }
-            },
-            HOURLY_SALARY: {
-                id: 'HOURLY_SALARY',
+    const fields: FieldIndex = Immutable.fromJS({
+        SALARY_LIST_REF: {
+            id: 'SALARY_LIST_REF',
+            'registry-id': 'USERS',
+            title: 'HOURLY_SALARY_REF',
+            'field-type': 'registry-reference',
+            settings: {
                 'registry-id': 'SALARY_LIST',
-                'field-type': 'number',
-                'field-section': 'generic',
-            }
+            },
         },
-    );
-    const regData = Immutable.Map<string, Immutable.Map<string, any>>(
-        {
-            SALARY_LIST_1: Immutable.Map({
-                id: 'SALARY_LIST_1',
-                "registry-id": "SALARY_LIST",
-                values: Immutable.Map({
-                    HOURLY_SALARY: 1.1,
-                }),
-            }),
-            SALARY_LIST_2: Immutable.Map({
-                id: 'SALARY_LIST_2',
-                "registry-id": "SALARY_LIST",
-                values: Immutable.Map({
-                    HOURLY_SALARY: 1.1,
-                }),
-            }),
-            SALARY_LIST_3: Immutable.Map({
-                id: 'SALARY_LIST_3',
-                "registry-id": "SALARY_LIST",
-                values: Immutable.Map({
-                    HOURLY_SALARY: 1.1,
-                }),
-            }),
-            SALARY_LIST_4: Immutable.Map({
-                id: 'SALARY_LIST_4',
-                "registry-id": "SALARY_LIST",
-                values: Immutable.Map({
-                    HOURLY_SALARY: 1.1,
-                }),
-            }),
-        }
-    );
-    //const users = Immutable.Map() as Immutable.Map<string, Immutable.Map<string, any>>;
-    const users = Immutable.Map({
-        USER_1: Immutable.Map({
+        HOURLY_SALARY: {
+            id: 'HOURLY_SALARY',
+            'registry-id': 'SALARY_LIST',
+            'field-type': 'number',
+            'field-section': 'generic',
+        },
+    });
+    const regData: RegDataIndex = Immutable.fromJS({
+        SALARY_LIST_1: {
+            id: 'SALARY_LIST_1',
+            'registry-id': 'SALARY_LIST',
+            values: {
+                HOURLY_SALARY: 1.1,
+            },
+        },
+    });
+
+    const users: RegDataIndex = Immutable.fromJS({
+        USER_1: {
             id: 'USER_1',
             'registry-id': 'USERS',
-            values: Immutable.Map({
+            values: {
                 SALARY_LIST_REF: 'SALARY_LIST_1',
-            })
-        })
-    })
-
-
+            },
+        },
+    });
 
     it('test', () => {
         dataBuilder = dataBuilderFactory(fields, regData, users);
-        const refData = dataBuilder(Immutable.Map({
+        const timeReport: RegData = Immutable.Map({
             id: 'REPORT_1',
             start: '',
             end: '',
             'registry-id': 'REPORTS',
-            'user-id': 'USER_1'
-        }));
+            'user-id': 'USER_1',
+        });
+        const refData = dataBuilder(timeReport);
         expect(refData?.get('HOURLY_SALARY')).toBeDefined();
         expect(refData?.get('HOURLY_SALARY')).toEqual(1.1);
     });
