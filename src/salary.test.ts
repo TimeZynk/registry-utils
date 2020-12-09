@@ -1,6 +1,7 @@
 import Immutable from 'immutable';
 import { stopCache } from './cacheFactory';
 import { dataBuilderFactory, DataBuilder } from './dataBuilderFactory';
+import { defaultRegisters } from './defaultRegisters';
 
 describe('Custom value', () => {
     afterEach(() => {
@@ -33,6 +34,7 @@ describe('Custom value', () => {
     type RegDataId = string;
     type RegData = Immutable.Map<string, any>;
     type RegDataIndex = Immutable.Map<RegDataId, RegData>;
+
     it('should override default value', () => {
         const fields: FieldIndex = Immutable.fromJS({
             SALARY_LIST_REF: {
@@ -86,13 +88,14 @@ describe('Custom value', () => {
             id: 'REPORT_1',
             start: '',
             end: '',
-            'registry-id': 'REPORTS',
+            'registry-id': defaultRegisters.REPORTS_REG_ID,
             'user-id': 'USER_1',
         });
         const refData = dataBuilder(timeReport);
         expect(refData?.get('HOURLY_SALARY')).toEqual(1.2);
     });
-    it('should override default value for complex case', () => {
+
+    it('should override default value even when input has blank registry-id', () => {
         const fields: FieldIndex = Immutable.fromJS({
             SALARY_LIST_REF: {
                 id: 'SALARY_LIST_REF',
@@ -145,8 +148,11 @@ describe('Custom value', () => {
             id: 'REPORT_1',
             start: '',
             end: '',
-            'registry-id': 'REPORTS',
             'user-id': 'USER_1',
+            // Time reports are not real registry data instances, but rather
+            // a more specialized data type that needs to interpret fields
+            // from both reports and shifts. It is therefore missing the
+            // registry-id attribute.
         });
         const refData = dataBuilder(timeReport);
         expect(refData?.get('HOURLY_SALARY')).toEqual(1.2);
