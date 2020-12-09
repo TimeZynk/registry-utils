@@ -2,7 +2,7 @@ import Immutable from 'immutable';
 import { stopCache } from './cacheFactory';
 import { dataBuilderFactory, DataBuilder } from './dataBuilderFactory';
 
-describe('mob', () => {
+describe('Multiple salary lists for users', () => {
     afterEach(() => {
         stopCache();
     });
@@ -36,6 +36,9 @@ describe('mob', () => {
             settings: {
                 'registry-id': 'SALARY_LIST',
             },
+            values: {
+                'default-val': 'SALARY_LIST_1',
+            },
         },
         HOURLY_SALARY: {
             id: 'HOURLY_SALARY',
@@ -52,6 +55,13 @@ describe('mob', () => {
                 HOURLY_SALARY: 1.1,
             },
         },
+        SALARY_LIST_2: {
+            id: 'SALARY_LIST_2',
+            'registry-id': 'SALARY_LIST',
+            values: {
+                HOURLY_SALARY: 1.2,
+            },
+        },
     });
 
     const users: RegDataIndex = Immutable.fromJS({
@@ -59,12 +69,12 @@ describe('mob', () => {
             id: 'USER_1',
             'registry-id': 'USERS',
             values: {
-                SALARY_LIST_REF: 'SALARY_LIST_1',
+                SALARY_LIST_REF: 'SALARY_LIST_2',
             },
         },
     });
 
-    it('test', () => {
+    it('refData should have a proper referenced value without overriden set value by default-val', () => {
         dataBuilder = dataBuilderFactory(fields, regData, users);
         const timeReport: RegData = Immutable.Map({
             id: 'REPORT_1',
@@ -74,7 +84,6 @@ describe('mob', () => {
             'user-id': 'USER_1',
         });
         const refData = dataBuilder(timeReport);
-        expect(refData?.get('HOURLY_SALARY')).toBeDefined();
-        expect(refData?.get('HOURLY_SALARY')).toEqual(1.1);
+        expect(refData?.get('HOURLY_SALARY')).toEqual(1.2);
     });
 });
