@@ -27,25 +27,24 @@ describe('mob', () => {
     type Field = Immutable.Map<string, any>;
     type FieldIndex = Immutable.Map<FieldId, Field>
 
-    const fields: FieldIndex = Immutable.Map(
+    const fields: FieldIndex = Immutable.fromJS(
         {
-            SALARY_LIST_REF: Immutable.Map({
+            SALARY_LIST_REF: {
                 id: 'SALARY_LIST_REF',
                 'registry-id': 'USERS',
                 'title': 'HOURLY_SALARY_REF',
                 'field-type': 'registry-reference',
-                'settings': Immutable.Map({
+                'settings': {
                     'registry-id': 'SALARY_LIST',
-                })
-            }),
-            HOURLY_SALARY: Immutable.Map({
+                }
+            },
+            HOURLY_SALARY: {
                 id: 'HOURLY_SALARY',
                 'registry-id': 'SALARY_LIST',
                 'field-type': 'number',
                 'field-section': 'generic',
-            })
+            }
         },
-
     );
     const regData = Immutable.Map<string, Immutable.Map<string, any>>(
         {
