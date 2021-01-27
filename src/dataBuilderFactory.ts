@@ -72,30 +72,30 @@ function getValue(
     values: Immutable.Map<string, any>,
     fi: Immutable.Map<string, any>
 ): any {
+    let value = fi.getIn(['values', 'default-val']);
+    const id = fi.get('id');
+    let itemValue = item.get(id);
+    if (!isNil(itemValue)) {
+        value = itemValue;
+    }
+
+    switch (fi.get('field-type')) {
+        case 'breaks':
+            itemValue = item.get('breaks');
+            break;
+        case 'start-end':
+            itemValue = Immutable.List([item.get('start'), item.get('end')]);
+            break;
+        default:
+            itemValue = values.get(id);
+            break;
+    }
+
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
     }
 
-    const id = fi.get('id');
-    let value;
-    switch (fi.get('field-type')) {
-        case 'breaks':
-            value = item.get('breaks');
-            break;
-        case 'start-end':
-            value = Immutable.List([item.get('start'), item.get('end')]);
-            break;
-        default:
-            value = values.get(id);
-            break;
-    }
-    if (isNil(value)) {
-        value = item.get(id);
-    }
-    if (isNil(value) && !fi.get('archived')) {
-        value = fi.getIn(['values', 'default-val']);
-    }
     return value;
 }
 
