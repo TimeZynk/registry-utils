@@ -44,19 +44,6 @@ function merger(prev: any, next?: any): Immutable.Collection<any, any> {
     return isNil(next) ? prev : next;
 }
 
-function weakMerger(prev: any, next: any): Immutable.Collection<any, any> {
-    if (Immutable.List.isList(prev)) {
-        return (prev as Immutable.List<any>).concat(next);
-    }
-    if (Immutable.Map.isMap(prev)) {
-        return (prev as Immutable.Map<any, any>).mergeWith(weakMerger, next);
-    }
-    if (Immutable.Set.isSet(prev)) {
-        return (prev as Immutable.Set<any>).union(next);
-    }
-    return prev;
-}
-
 function isEmpty(v: any): boolean {
     if (isNil(v) || (isString(v) && _isEmpty(v))) {
         return true;
@@ -72,12 +59,15 @@ function getValue(
     values: Immutable.Map<string, any>,
     fi: Immutable.Map<string, any>
 ): any {
-    let value = fi.getIn(['values', 'default-val']);
+    const fieldId = fi.get('field-id');
+    if (fieldId === 'title') {
+        return item && item.get('title');
+    }
+
+    let value = null;
     const id = fi.get('id');
     let itemValue = item.get(id);
-    if (!isNil(itemValue)) {
-        value = itemValue;
-    }
+    value = itemValue;
 
     switch (fi.get('field-type')) {
         case 'breaks':
@@ -91,9 +81,8 @@ function getValue(
             break;
     }
 
-    const fieldId = fi.get('field-id');
-    if (fieldId === 'title') {
-        return item && item.get('title');
+    if (!isNil(itemValue)) {
+        value = itemValue;
     }
 
     return value;
@@ -144,7 +133,7 @@ function dataBuilderFactory(
             delete visited[id];
         }
 
-        return referencedValues ? acc.mergeWith(weakMerger, referencedValues) : acc;
+        return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
     }
 
     function mergeRegistryValues(acc: Immutable.Map<string, any>, id: string): Immutable.Map<string, any> {
@@ -173,6 +162,62 @@ function dataBuilderFactory(
         }
 
         return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
+    }
+    // TODO: use in mergeValues
+    function applyValue(fieldInstance: any, innerAcc, value) {
+        const id = fieldInstance.get('id');
+        let nextAcc = innerAcc.set(id, value);
+
+        const fid = fieldInstance.get('field-id');
+        const s = fieldInstance.get('field-section');
+        if (s) {
+            nextAcc = nextAcc.setIn([s, fid], value).setIn(['_mapping', s, fid], id);
+        } else {
+            nextAcc = nextAcc.set(fid, value);
+        }
+
+        const fieldType = fieldInstance.get('field-type');
+        if (fieldType === 'registry-reference') {
+            nextAcc = mergeRegistryValues(nextAcc, value);
+        } else if (fieldType === 'user-reference') {
+            nextAcc = mergeUserValues(nextAcc, value);
+        } else if (fieldType === 'article-reference') {
+            const type = fieldInstance.getIn(['settings', 'article-type']) || 'invoice';
+            if (type === 'salary') {
+                const article = salaryArticles?.get(value);
+                nextAcc = nextAcc.setIn(
+                    ['articles', type],
+                    Immutable.Map({
+                        id: article?.get('id'),
+                        code: article?.get('code'),
+                    })
+                );
+            } else {
+                const article = invoiceArticles?.get(value);
+                nextAcc = nextAcc.setIn(
+                    ['articles', type],
+                    Immutable.Map({
+                        id: article?.get('id'),
+                        sku: article?.get('sku'),
+                    })
+                );
+            }
+        }
+
+        return nextAcc;
+    }
+
+    function mergeDefaultValues(acc: Immutable.Map<string, any>): Immutable.Map<string, any> {
+        return fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
+            const innerAcc = reduction as Immutable.Map<string, any>;
+            const fieldInstance = maybeFieldInstance as Immutable.Map<string, any>;
+            const value = fieldInstance.getIn(['values', 'default-val']);
+            if (isEmpty(value) || fieldInstance.get('archived')) {
+                return innerAcc;
+            }
+
+            return applyValue(fieldInstance, innerAcc, value);
+        }, acc);
     }
 
     function mergeValues(
@@ -290,17 +335,18 @@ function dataBuilderFactory(
 
         visited = {};
 
-        let data = mergeValues(Immutable.Map<string, any>().asMutable(), item);
+        let data = Immutable.Map<string, any>().asMutable();
+        data = mergeDefaultValues(data);
         const userId = item.get('user-id');
-        const bookedUsers = item.get('booked-users');
-
         if (userId) {
             data = mergeUserValues(data, userId);
         }
-
+        const bookedUsers = item.get('booked-users');
         if (bookedUsers && !bookedUsers.isEmpty()) {
             data = bookedUsers.reduce(mergeUserValues, data);
         }
+        data = mergeValues(data, item);
+
         data = resolveFieldReferences(data);
         data = data.remove('_visited');
         data = data.asImmutable();
