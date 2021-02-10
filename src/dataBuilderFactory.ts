@@ -7,11 +7,15 @@ import _isEmpty from 'lodash/isEmpty';
 import { defaultRegisters } from './defaultRegisters';
 import { cacheFactory } from './cacheFactory';
 
+type FieldInstance = Immutable.Map<string, any>;
+type RefDataAccumulator = Immutable.Map<string, any>;
+type FieldValue = any;
+
 const cache = cacheFactory('fieldData');
 let visited: Record<string, boolean> = {};
 
 function byPriority(value: unknown): number {
-    const fi = value as Immutable.Map<string, any>;
+    const fi = value as FieldInstance;
     const weight: number = fi.get('weight');
 
     if (fi.get('archived')) {
@@ -54,11 +58,7 @@ function isEmpty(v: any): boolean {
     return false;
 }
 
-function getValue(
-    item: Immutable.Map<string, any>,
-    values: Immutable.Map<string, any>,
-    fi: Immutable.Map<string, any>
-): any {
+function getValue(item: Immutable.Map<string, any>, values: Immutable.Map<string, any>, fi: FieldInstance): FieldValue {
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
@@ -163,8 +163,12 @@ function dataBuilderFactory(
 
         return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
     }
-    // TODO: use in mergeValues
-    function applyValue(fieldInstance: any, innerAcc, value) {
+
+    function applyValue(
+        innerAcc: RefDataAccumulator,
+        fieldInstance: FieldInstance,
+        value: FieldValue
+    ): RefDataAccumulator {
         const id = fieldInstance.get('id');
         let nextAcc = innerAcc.set(id, value);
 
@@ -207,16 +211,16 @@ function dataBuilderFactory(
         return nextAcc;
     }
 
-    function mergeDefaultValues(acc: Immutable.Map<string, any>): Immutable.Map<string, any> {
+    function mergeDefaultValues(acc: RefDataAccumulator): RefDataAccumulator {
         return fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
-            const innerAcc = reduction as Immutable.Map<string, any>;
-            const fieldInstance = maybeFieldInstance as Immutable.Map<string, any>;
+            const innerAcc = reduction as RefDataAccumulator;
+            const fieldInstance = maybeFieldInstance as FieldInstance;
             const value = fieldInstance.getIn(['values', 'default-val']);
             if (isEmpty(value) || fieldInstance.get('archived')) {
                 return innerAcc;
             }
 
-            return applyValue(fieldInstance, innerAcc, value);
+            return applyValue(innerAcc, fieldInstance, value);
         }, acc);
     }
 
@@ -231,8 +235,8 @@ function dataBuilderFactory(
         const registryId = item.get('registry-id');
 
         const refData = fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
-            const innerAcc = reduction as Immutable.Map<string, any>;
-            const fi = maybeFieldInstance as Immutable.Map<string, any>;
+            const innerAcc = reduction as RefDataAccumulator;
+            const fi = maybeFieldInstance as FieldInstance;
             if (registryId && registryId !== fi.get('registry-id')) {
                 return innerAcc;
             }
@@ -242,48 +246,11 @@ function dataBuilderFactory(
                 return innerAcc;
             }
 
-            const id = fi.get('id');
-            let nextAcc = innerAcc.set(id, v);
-
             const fid = fi.get('field-id');
-            const s = fi.get('field-section');
-            if (s) {
-                nextAcc = nextAcc.setIn([s, fid], v).setIn(['_mapping', s, fid], id);
-            } else {
-                nextAcc = nextAcc.set(fid, v);
-            }
-
+            let nextAcc = applyValue(innerAcc, fi, v);
             if (item && fid === 'customer-no' && !nextAcc.getIn(['invoice-head', 'customer-name'])) {
                 // Copy customer name from title
                 nextAcc = nextAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
-            }
-
-            const fieldType = fi.get('field-type');
-            if (fieldType === 'registry-reference') {
-                nextAcc = mergeRegistryValues(nextAcc, v);
-            } else if (fieldType === 'user-reference') {
-                nextAcc = mergeUserValues(nextAcc, v);
-            } else if (fieldType === 'article-reference') {
-                const type = fi.getIn(['settings', 'article-type']) || 'invoice';
-                if (type === 'salary') {
-                    const article = salaryArticles?.get(v);
-                    nextAcc = nextAcc.setIn(
-                        ['articles', type],
-                        Immutable.Map({
-                            id: article?.get('id'),
-                            code: article?.get('code'),
-                        })
-                    );
-                } else {
-                    const article = invoiceArticles?.get(v);
-                    nextAcc = nextAcc.setIn(
-                        ['articles', type],
-                        Immutable.Map({
-                            id: article?.get('id'),
-                            sku: article?.get('sku'),
-                        })
-                    );
-                }
             }
 
             return nextAcc;
