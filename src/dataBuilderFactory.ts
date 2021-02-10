@@ -6,10 +6,18 @@ import isString from 'lodash/isString';
 import _isEmpty from 'lodash/isEmpty';
 import { defaultRegisters } from './defaultRegisters';
 import { cacheFactory } from './cacheFactory';
-
-type FieldInstance = Immutable.Map<string, any>;
-type RefDataAccumulator = Immutable.Map<string, any>;
-type FieldValue = any;
+import type {
+    FieldInstance,
+    RefData,
+    RefDataAccumulator,
+    RegistryDataInstance,
+    User,
+    FieldValue,
+    FieldValues,
+    InvoiceArticle,
+    SalaryArticle,
+    DataBuilder,
+} from './types';
 
 const cache = cacheFactory('fieldData');
 let visited: Record<string, boolean> = {};
@@ -58,7 +66,7 @@ function isEmpty(v: any): boolean {
     return false;
 }
 
-function getValue(item: Immutable.Map<string, any>, values: Immutable.Map<string, any>, fi: FieldInstance): FieldValue {
+function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInstance): FieldValue {
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
@@ -88,10 +96,6 @@ function getValue(item: Immutable.Map<string, any>, values: Immutable.Map<string
     return value;
 }
 
-export interface DataBuilder {
-    (item: Immutable.Map<string, any>): Immutable.Map<string, any> | null;
-}
-
 /**
  *  Create a new dataBuilder function.
  * @param {Immutable.Map} regFields Registry fields
@@ -101,18 +105,16 @@ export interface DataBuilder {
  * @param {Immutable.Map} salaryArticles Salary articles (optional)
  */
 function dataBuilderFactory(
-    regFields: Immutable.Map<string, Immutable.Map<string, any>> | undefined,
-    regData: Immutable.Map<string, Immutable.Map<string, any>>,
-    users: Immutable.Map<string, Immutable.Map<string, any>>,
-    invoiceArticles?: Immutable.Map<string, Immutable.Map<string, any>>,
-    salaryArticles?: Immutable.Map<string, Immutable.Map<string, any>>
+    regFields: Immutable.Map<string, FieldInstance> | undefined,
+    regData: Immutable.Map<string, RegistryDataInstance>,
+    users: Immutable.Map<string, User>,
+    invoiceArticles?: Immutable.Map<string, InvoiceArticle>,
+    salaryArticles?: Immutable.Map<string, SalaryArticle>
 ): DataBuilder {
-    const fieldInstances = regFields
-        ? regFields.sortBy(byPriority)
-        : Immutable.Map<string, Immutable.Map<string, any>>();
+    const fieldInstances = regFields ? regFields.sortBy(byPriority) : Immutable.Map<string, FieldInstance>();
     cache && cache.flush && cache.flush();
 
-    function mergeUserValues(acc: Immutable.Map<string, any>, id: string): Immutable.Map<string, any> {
+    function mergeUserValues(acc: RefDataAccumulator, id: string): RefDataAccumulator {
         let referencedValues = cache.get(id);
 
         if (users && !referencedValues && !visited[id]) {
@@ -136,7 +138,7 @@ function dataBuilderFactory(
         return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
     }
 
-    function mergeRegistryValues(acc: Immutable.Map<string, any>, id: string): Immutable.Map<string, any> {
+    function mergeRegistryValues(acc: RefDataAccumulator, id: string): RefDataAccumulator {
         let referencedValues = cache.get(id);
 
         if (!referencedValues && !visited[id]) {
@@ -224,10 +226,7 @@ function dataBuilderFactory(
         }, acc);
     }
 
-    function mergeValues(
-        acc: Immutable.Map<string, any>,
-        item: Immutable.Map<string, any>
-    ): Immutable.Map<string, any> {
+    function mergeValues(acc: RefDataAccumulator, item: RegistryDataInstance): RefDataAccumulator {
         if (!item || !item.get) {
             return acc;
         }
@@ -264,18 +263,18 @@ function dataBuilderFactory(
      * Process field references after everything else is resolved
      * @param {*} refData
      */
-    function resolveFieldReferences(refData: Immutable.Map<string, any>): Immutable.Map<string, any> {
+    function resolveFieldReferences(refData: RefDataAccumulator): RefDataAccumulator {
         if (!refData || refData.isEmpty()) {
             return refData;
         }
         return fieldInstances
-            .reduce((reduction: unknown, item: unknown) => {
-                const innerAcc = reduction as Immutable.Map<string, any>;
-                const fi = item as Immutable.Map<string, any>;
-                if (fi.get('field-type') !== 'field-reference') {
+            .reduce((reduction: unknown, maybeFieldInstance: unknown) => {
+                const innerAcc = reduction as RefDataAccumulator;
+                const fieldInstance = maybeFieldInstance as FieldInstance;
+                if (fieldInstance.get('field-type') !== 'field-reference') {
                     return innerAcc;
                 }
-                const id = fi.get('id');
+                const id = fieldInstance.get('id');
                 const referencedField = innerAcc.get(id);
                 if (!referencedField) {
                     return innerAcc;
@@ -286,7 +285,7 @@ function dataBuilderFactory(
             .asImmutable();
     }
 
-    return (item: Immutable.Map<string, any>): Immutable.Map<string, any> | null => {
+    return (item: RegistryDataInstance): RefData | null => {
         if (!item || !item.get) {
             return null;
         }
@@ -302,7 +301,7 @@ function dataBuilderFactory(
 
         visited = {};
 
-        let data = Immutable.Map<string, any>().asMutable();
+        let data: RefDataAccumulator = Immutable.Map<string, any>().asMutable();
         data = mergeDefaultValues(data);
         const userId = item.get('user-id');
         if (userId) {
