@@ -7,11 +7,15 @@ import _isEmpty from 'lodash/isEmpty';
 import { defaultRegisters } from './defaultRegisters';
 import { cacheFactory } from './cacheFactory';
 
+type FieldInstance = Immutable.Map<string, any>;
+type RefDataAccumulator = Immutable.Map<string, any>;
+type FieldValue = any;
+
 const cache = cacheFactory('fieldData');
 let visited: Record<string, boolean> = {};
 
 function byPriority(value: unknown): number {
-    const fi = value as Immutable.Map<string, any>;
+    const fi = value as FieldInstance;
     const weight: number = fi.get('weight');
 
     if (fi.get('archived')) {
@@ -44,19 +48,6 @@ function merger(prev: any, next?: any): Immutable.Collection<any, any> {
     return isNil(next) ? prev : next;
 }
 
-function weakMerger(prev: any, next: any): Immutable.Collection<any, any> {
-    if (Immutable.List.isList(prev)) {
-        return (prev as Immutable.List<any>).concat(next);
-    }
-    if (Immutable.Map.isMap(prev)) {
-        return (prev as Immutable.Map<any, any>).mergeWith(weakMerger, next);
-    }
-    if (Immutable.Set.isSet(prev)) {
-        return (prev as Immutable.Set<any>).union(next);
-    }
-    return prev;
-}
-
 function isEmpty(v: any): boolean {
     if (isNil(v) || (isString(v) && _isEmpty(v))) {
         return true;
@@ -67,35 +58,33 @@ function isEmpty(v: any): boolean {
     return false;
 }
 
-function getValue(
-    item: Immutable.Map<string, any>,
-    values: Immutable.Map<string, any>,
-    fi: Immutable.Map<string, any>
-): any {
+function getValue(item: Immutable.Map<string, any>, values: Immutable.Map<string, any>, fi: FieldInstance): FieldValue {
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
     }
 
+    let value = null;
     const id = fi.get('id');
-    let value;
+    let itemValue = item.get(id);
+    value = itemValue;
+
     switch (fi.get('field-type')) {
         case 'breaks':
-            value = item.get('breaks');
+            itemValue = item.get('breaks');
             break;
         case 'start-end':
-            value = Immutable.List([item.get('start'), item.get('end')]);
+            itemValue = Immutable.List([item.get('start'), item.get('end')]);
             break;
         default:
-            value = values.get(id);
+            itemValue = values.get(id);
             break;
     }
-    if (isNil(value)) {
-        value = item.get(id);
+
+    if (!isNil(itemValue)) {
+        value = itemValue;
     }
-    if (isNil(value) && !fi.get('archived')) {
-        value = fi.getIn(['values', 'default-val']);
-    }
+
     return value;
 }
 
@@ -144,7 +133,7 @@ function dataBuilderFactory(
             delete visited[id];
         }
 
-        return referencedValues ? acc.mergeWith(weakMerger, referencedValues) : acc;
+        return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
     }
 
     function mergeRegistryValues(acc: Immutable.Map<string, any>, id: string): Immutable.Map<string, any> {
@@ -175,6 +164,66 @@ function dataBuilderFactory(
         return referencedValues ? acc.mergeWith(merger, referencedValues) : acc;
     }
 
+    function applyValue(
+        innerAcc: RefDataAccumulator,
+        fieldInstance: FieldInstance,
+        value: FieldValue
+    ): RefDataAccumulator {
+        const id = fieldInstance.get('id');
+        let nextAcc = innerAcc.set(id, value);
+
+        const fid = fieldInstance.get('field-id');
+        const s = fieldInstance.get('field-section');
+        if (s) {
+            nextAcc = nextAcc.setIn([s, fid], value).setIn(['_mapping', s, fid], id);
+        } else {
+            nextAcc = nextAcc.set(fid, value);
+        }
+
+        const fieldType = fieldInstance.get('field-type');
+        if (fieldType === 'registry-reference') {
+            nextAcc = mergeRegistryValues(nextAcc, value);
+        } else if (fieldType === 'user-reference') {
+            nextAcc = mergeUserValues(nextAcc, value);
+        } else if (fieldType === 'article-reference') {
+            const type = fieldInstance.getIn(['settings', 'article-type']) || 'invoice';
+            if (type === 'salary') {
+                const article = salaryArticles?.get(value);
+                nextAcc = nextAcc.setIn(
+                    ['articles', type],
+                    Immutable.Map({
+                        id: article?.get('id'),
+                        code: article?.get('code'),
+                    })
+                );
+            } else {
+                const article = invoiceArticles?.get(value);
+                nextAcc = nextAcc.setIn(
+                    ['articles', type],
+                    Immutable.Map({
+                        id: article?.get('id'),
+                        sku: article?.get('sku'),
+                    })
+                );
+            }
+        }
+
+        return nextAcc;
+    }
+
+    function mergeDefaultValues(acc: RefDataAccumulator): RefDataAccumulator {
+        return fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
+            const innerAcc = reduction as RefDataAccumulator;
+            const fieldInstance = maybeFieldInstance as FieldInstance;
+            const value = fieldInstance.getIn(['values', 'default-val']);
+            if (isEmpty(value) || fieldInstance.get('archived')) {
+                return innerAcc;
+            }
+
+            return applyValue(innerAcc, fieldInstance, value);
+        }, acc);
+    }
+
     function mergeValues(
         acc: Immutable.Map<string, any>,
         item: Immutable.Map<string, any>
@@ -186,8 +235,8 @@ function dataBuilderFactory(
         const registryId = item.get('registry-id');
 
         const refData = fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
-            const innerAcc = reduction as Immutable.Map<string, any>;
-            const fi = maybeFieldInstance as Immutable.Map<string, any>;
+            const innerAcc = reduction as RefDataAccumulator;
+            const fi = maybeFieldInstance as FieldInstance;
             if (registryId && registryId !== fi.get('registry-id')) {
                 return innerAcc;
             }
@@ -197,48 +246,11 @@ function dataBuilderFactory(
                 return innerAcc;
             }
 
-            const id = fi.get('id');
-            let nextAcc = innerAcc.set(id, v);
-
             const fid = fi.get('field-id');
-            const s = fi.get('field-section');
-            if (s) {
-                nextAcc = nextAcc.setIn([s, fid], v).setIn(['_mapping', s, fid], id);
-            } else {
-                nextAcc = nextAcc.set(fid, v);
-            }
-
+            let nextAcc = applyValue(innerAcc, fi, v);
             if (item && fid === 'customer-no' && !nextAcc.getIn(['invoice-head', 'customer-name'])) {
                 // Copy customer name from title
                 nextAcc = nextAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
-            }
-
-            const fieldType = fi.get('field-type');
-            if (fieldType === 'registry-reference') {
-                nextAcc = mergeRegistryValues(nextAcc, v);
-            } else if (fieldType === 'user-reference') {
-                nextAcc = mergeUserValues(nextAcc, v);
-            } else if (fieldType === 'article-reference') {
-                const type = fi.getIn(['settings', 'article-type']) || 'invoice';
-                if (type === 'salary') {
-                    const article = salaryArticles?.get(v);
-                    nextAcc = nextAcc.setIn(
-                        ['articles', type],
-                        Immutable.Map({
-                            id: article?.get('id'),
-                            code: article?.get('code'),
-                        })
-                    );
-                } else {
-                    const article = invoiceArticles?.get(v);
-                    nextAcc = nextAcc.setIn(
-                        ['articles', type],
-                        Immutable.Map({
-                            id: article?.get('id'),
-                            sku: article?.get('sku'),
-                        })
-                    );
-                }
             }
 
             return nextAcc;
@@ -290,17 +302,18 @@ function dataBuilderFactory(
 
         visited = {};
 
-        let data = mergeValues(Immutable.Map<string, any>().asMutable(), item);
+        let data = Immutable.Map<string, any>().asMutable();
+        data = mergeDefaultValues(data);
         const userId = item.get('user-id');
-        const bookedUsers = item.get('booked-users');
-
         if (userId) {
             data = mergeUserValues(data, userId);
         }
-
+        const bookedUsers = item.get('booked-users');
         if (bookedUsers && !bookedUsers.isEmpty()) {
             data = bookedUsers.reduce(mergeUserValues, data);
         }
+        data = mergeValues(data, item);
+
         data = resolveFieldReferences(data);
         data = data.remove('_visited');
         data = data.asImmutable();
