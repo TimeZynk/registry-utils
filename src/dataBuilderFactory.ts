@@ -82,7 +82,10 @@ function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInst
             itemValue = item.get('breaks');
             break;
         case 'start-end':
-            itemValue = Immutable.List([item.get('start'), item.get('end')]);
+            itemValue =
+                item.get('role') && item.get('username') // Check if item is a user
+                    ? itemValue
+                    : Immutable.List([item.get('start'), item.get('end')]);
             break;
         default:
             itemValue = values.get(id);
