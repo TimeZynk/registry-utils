@@ -330,4 +330,4 @@ function dataBuilderFactory(
 
 const memoizedDataBuilderFactory = defaultMemoize(dataBuilderFactory);
 
-export { dataBuilderFactory, memoizedDataBuilderFactory };
+export { dataBuilderFactory, memoizedDataBuilderFactory, DataBuilder };
