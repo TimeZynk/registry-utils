@@ -71,7 +71,7 @@ function trim(value: FieldValue): FieldValue {
         if (isString(value)) {
             return value.trim();
         } else if (Immutable.Iterable.isIterable(value)) {
-            return (value as Immutable.Map<string, any>).map((v) => trim(v));
+            return value.map((v) => trim(v));
         }
     }
     return value;
@@ -314,7 +314,6 @@ function dataBuilderFactory(
         }
 
         visited = {};
-
         let data: RefDataAccumulator = Immutable.Map<string, any>().asMutable();
         data = mergeDefaultValues(data);
         const userId = item.get('user-id');
