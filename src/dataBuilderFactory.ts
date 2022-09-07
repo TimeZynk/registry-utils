@@ -66,6 +66,17 @@ function isEmpty(v: any): boolean {
     return false;
 }
 
+function trim(value: FieldValue): FieldValue {
+    if (value) {
+        if (isString(value)) {
+            return value.trim();
+        } else if (Immutable.Iterable.isIterable(value)) {
+            return value.map((v) => trim(v));
+        }
+    }
+    return value;
+}
+
 function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInstance): FieldValue {
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
@@ -96,7 +107,7 @@ function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInst
         value = itemValue;
     }
 
-    return value;
+    return trim(value);
 }
 
 /**
