@@ -77,6 +77,18 @@ function trim(value: FieldValue): FieldValue {
     return value;
 }
 
+function trimAddress(value: FieldValue): FieldValue {
+    if (value && Immutable.Iterable.isIterable(value)) {
+        return value.map((v) => {
+            if (v) {
+                return v.trim();
+            }
+            return '';
+        });
+    }
+    return value;
+}
+
 function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInstance): FieldValue {
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
@@ -107,7 +119,7 @@ function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInst
         value = itemValue;
     }
 
-    return trim(value);
+    return fi.get('field-type') === 'address' ? trimAddress(value) : trim(value);
 }
 
 /**
