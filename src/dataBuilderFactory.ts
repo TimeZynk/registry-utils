@@ -311,15 +311,18 @@ function dataBuilderFactory(
             .asImmutable();
     }
 
-    return (item: RegistryDataInstance): RefData | null => {
+    return (item: RegistryDataInstance, notCahced: boolean): RefData | null => {
         if (!item || !item.get) {
             return null;
         }
-
+        if (item.get('original')) {
+            // original is a marker to know that we are feeding it refData not Raw Data
+            return item;
+        }
         const id = item.get('id');
         const validFrom = item.get('valid-from');
         const cacheKey = id && id + '/' + validFrom;
-        const refData = cacheKey && cache.get(cacheKey);
+        const refData = !notCahced && cacheKey && cache.get(cacheKey);
 
         if (refData) {
             return refData;
@@ -339,6 +342,7 @@ function dataBuilderFactory(
         data = mergeValues(data, item);
 
         data = resolveFieldReferences(data);
+        data = data.set('original', item);
         data = data.remove('_visited');
         data = data.asImmutable();
 
