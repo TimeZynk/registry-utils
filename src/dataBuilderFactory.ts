@@ -311,7 +311,7 @@ function dataBuilderFactory(
             .asImmutable();
     }
 
-    return (item: RegistryDataInstance, notCahced: boolean): RefData | null => {
+    return (item: RegistryDataInstance, notCahced?: boolean): RefData | null => {
         if (!item || !item.get) {
             return null;
         }

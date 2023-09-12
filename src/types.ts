@@ -11,5 +11,5 @@ export type InvoiceArticle = Immutable.Map<string, any>;
 export type SalaryArticle = Immutable.Map<string, any>;
 
 export interface DataBuilder {
-    (item: RegistryDataInstance): RefData | null;
+    (item: RegistryDataInstance, notCahced?: boolean): RefData | null;
 }
