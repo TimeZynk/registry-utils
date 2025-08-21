@@ -1,11 +1,338 @@
 ![npm](https://img.shields.io/npm/v/timezynk-registry-utils?style=for-the-badge)
 
-# Registry utils
+# Timezynk Registry Utils
 
-Utils for working with Timezynk registry structure.
+A utility library for building reference data from registry structures in Timezynk.
 
-## Usage
+## Features
 
-```javascript
-import { dataBuilderFactory, registryDefaultData, defaultRegisters } from 'timezynk-registry-utils';
+-   **Data Builder Factory**: Creates functions that build reference data from registry items
+-   **Field Reference Resolution**: Automatically resolves field references across registry structures
+-   **Dynamic Title Composition**: Compose dynamic titles from multiple registry fields with custom separators
+-   **Caching**: Built-in caching for performance optimization
+-   **Memoization Support**: Export memoized builder factory for performance optimization
+
+## Installation
+
+```bash
+npm install timezynk-registry-utils
+```
+
+## Basic Usage
+
+```typescript
+import { dataBuilderFactory, memoizedDataBuilderFactory } from 'timezynk-registry-utils';
+
+// Basic usage
+const refDataBuilder = dataBuilderFactory(fieldInstances, registryData, users);
+const refData = refDataBuilder(shift);
+
+// With memoization (recommended for performance)
+const refDataBuilder = memoizedDataBuilderFactory(fieldInstances, registryData, users);
+const refData = refDataBuilder(shift);
+```
+
+## Dynamic Title Composition
+
+The library supports dynamic title composition that can combine multiple registry fields into a single title string. This is particularly useful for creating searchable, human-readable titles from complex registry data.
+
+### Configuration Structure
+
+The dynamic title settings follow this structure:
+
+```typescript
+{
+    "id": "553e2f1f3029e0478fc757f2/dynamic-title", // registry-id/dynamic-title
+    "value": {
+        "separator": ", ", // Custom separator between field values
+        "fields": [
+            {
+                "formatId": "standard", // Optional formatter ID
+                "id": "title-6894be7bca96a32dabf1fd96" // Field ID to include
+            },
+            {
+                "formatId": "standard",
+                "id": "6894be8a6d3f9a793f88a958"
+            }
+        ]
+    }
+}
+```
+
+### Basic Title Composition
+
+```typescript
+import { dataBuilderFactory } from 'timezynk-registry-utils';
+import { defaultRegisters } from 'timezynk-registry-utils';
+
+// Define your fields
+const fields = Immutable.Map({
+    FIELD_A: Immutable.Map({
+        id: 'FIELD_A',
+        'field-id': 'field-a',
+        'field-type': 'text',
+        'field-section': 'generic',
+    }),
+    FIELD_B: Immutable.Map({
+        id: 'FIELD_B',
+        'field-id': 'field-b',
+        'field-type': 'text',
+        'field-section': 'generic',
+    }),
+});
+
+// Configure title composition settings
+const dynamicTitleSetting = Immutable.fromJS({
+    id: `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`,
+    value: {
+        separator: ' - ',
+        fields: [{ id: 'FIELD_A' }, { id: 'FIELD_B' }],
+    },
+});
+
+// Create data builder with title composition enabled
+const dataBuilder = dataBuilderFactory(fields, registryData, users, undefined, undefined, dynamicTitleSetting);
+
+// Use the data builder
+const refData = dataBuilder(
+    Immutable.Map({
+        id: 'ITEM1',
+        'registry-id': 'SHIFTS',
+        values: Immutable.Map({
+            FIELD_A: 'Value A',
+            FIELD_B: 'Value B',
+        }),
+    })
+);
+
+// Result: refData.get('title') === "Value A - Value B"
+```
+
+### Path-Based Title Composition (Fallback)
+
+When no specific fields are configured or when fields list is empty, the system falls back to path-based title composition:
+
+```typescript
+const settings = Immutable.fromJS({
+    id: `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`,
+    value: {
+        separator: ' | ',
+        fields: [], // Empty fields list triggers path-based composition
+    },
+});
+
+// This will use the path data (registry references) or fall back to the item's title
+// Result: "Parent Registry Title | Child Registry Title"
+```
+
+### Manual Title Composition
+
+You can also use the title composition functions directly:
+
+```typescript
+import { titlesFromPath, createTitleBuilder } from 'timezynk-registry-utils';
+
+// Compose title from existing refData
+const composedTitle = titlesFromPath(refData, undefined, settings, registryFields);
+
+// Create a reusable title builder
+const titleBuilder = createTitleBuilder(settings, registryFields);
+const title = titleBuilder(refData);
+```
+
+## Integration with Redux Store
+
+For applications using Redux, you can create a connected data builder:
+
+```typescript
+import { defaultMemoize } from 'reselect';
+import { dataBuilderFactory } from 'timezynk-registry-utils';
+import store from 'state/store';
+import { getAllRegistryFields, getRegistryData, getAllUsers, getCompanySetting } from 'state/selectors';
+import { defaultRegisters } from 'timezynk-registry-utils';
+
+const SHIFT_TITLE_SETTING_ID = `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`;
+
+// Memoized builder factory
+const getDataBuilder = defaultMemoize(dataBuilderFactory);
+
+interface RefDataBuilderOptions {
+    dynamicTitle?: boolean;
+}
+
+export function createConnectedRefDataBuilder(options: RefDataBuilderOptions = {}) {
+    return function (item) {
+        const state = store.getState();
+        const registryFields = getAllRegistryFields(state);
+        const registryData = getRegistryData(state);
+        const users = getAllUsers(state);
+
+        if (options.dynamicTitle) {
+            const titleSettings = getCompanySetting(state, SHIFT_TITLE_SETTING_ID);
+
+            return getDataBuilder(registryFields, registryData, users, undefined, undefined, titleSettings)(item);
+        }
+
+        return getDataBuilder(registryFields, registryData, users)(item);
+    };
+}
+
+// Export for direct usage
+export { getDataBuilder };
+
+// Usage
+const refDataBuilder = createConnectedRefDataBuilder({ dynamicTitle: true });
+const refData = refDataBuilder(item);
+```
+
+## API Reference
+
+### dataBuilderFactory
+
+Creates a function that builds reference data from registry items.
+
+```typescript
+function dataBuilderFactory(
+    regFields: Immutable.Map<string, FieldInstance> | undefined,
+    regData: Immutable.Map<string, RegistryDataInstance>,
+    users: Immutable.Map<string, User>,
+    invoiceArticles?: Immutable.Map<string, InvoiceArticle>,
+    salaryArticles?: Immutable.Map<string, SalaryArticle>,
+    dynamicTitleSetting?: Immutable.Map<string, any> | any
+): DataBuilder;
+```
+
+**Parameters:**
+
+-   `regFields`: Registry field definitions
+-   `regData`: Registry data instances
+-   `users`: User data
+-   `invoiceArticles`: Optional invoice articles data
+-   `salaryArticles`: Optional salary articles data
+-   `dynamicTitleSetting`: Optional dynamic title composition settings
+
+### memoizedDataBuilderFactory
+
+A memoized version of `dataBuilderFactory` for performance optimization.
+
+```typescript
+const memoizedDataBuilderFactory = defaultMemoize(dataBuilderFactory);
+```
+
+### titlesFromPath
+
+Composes a title from reference data using configured settings.
+
+```typescript
+function titlesFromPath(
+    data: RefData,
+    removeId?: string,
+    settings?: Immutable.Map<string, any> | any,
+    regFields?: Immutable.Map<string, FieldInstance>
+): string;
+```
+
+**Parameters:**
+
+-   `data`: The reference data object
+-   `removeId`: Optional registry ID to exclude from path-based composition
+-   `settings`: Dynamic title composition settings
+-   `regFields`: Registry field definitions for formatter support
+
+### createTitleBuilder
+
+Creates a reusable title builder function from settings.
+
+```typescript
+function createTitleBuilder(
+    settings: Immutable.Map<string, any> | any,
+    regFields: Immutable.Map<string, FieldInstance>
+): (refData: RefData, removeId?: string) => string;
+```
+
+## How Path Works
+
+The `path` property in `refData` contains a hierarchical trail of registry references:
+
+```typescript
+// Example path structure
+{
+  "path": [
+    {
+      "title": "Parent Registry Item",
+      "id": "parent-id",
+      "registry-id": "parent-registry-id"
+    },
+    {
+      "title": "Child Registry Item",
+      "id": "child-id",
+      "registry-id": "child-registry-id"
+    }
+  ],
+  "title-parent-registry-id": "Parent Registry Item",
+  "title-child-registry-id": "Child Registry Item"
+}
+```
+
+-   **`path`**: Contains registry references (items that reference other registry items)
+-   **`title-{registry-id}`**: Created for each registry reference to store the referenced item's title
+-   **Direct field values**: Appear at the root level for regular fields
+
+## Configuration
+
+### Title Composition Settings
+
+The title composition is configured through settings with the key pattern: `${registryId}/dynamic-title`
+
+```typescript
+{
+    separator: string,           // Separator between field values (default: ', ')
+    fields: Immutable.List([     // List of fields to compose
+        { id: 'FIELD_ID' },      // Field ID to include
+        { id: 'FIELD_ID', formatId: 'FORMATTER_ID' } // With optional formatter
+    ])
+}
+```
+
+### Field Formatters
+
+Formatters can be defined in the registry fields themselves using the `formatter` property:
+
+```typescript
+const fieldWithFormatter = Immutable.Map({
+    id: 'FIELD_ID',
+    'field-id': 'field-name',
+    'field-type': 'text',
+    formatter: (value) => `Formatted: ${value}`, // Custom formatter function
+});
+```
+
+## Examples
+
+See the test files for comprehensive examples of how to use the library:
+
+-   `src/dataBuilderFactory.test.ts` - Core functionality tests
+-   `src/defaultValue.test.ts` - Default value handling
+-   `src/salary.test.ts` - Salary-specific functionality
+
+## Migration from Legacy dataBuilder
+
+If you're migrating from the legacy `dataBuilder` pattern:
+
+```typescript
+// Legacy pattern (deprecated)
+import { makeDataBuilder } from 'state/selectors';
+import { setDataBuilder } from '@timezynk/tzstores';
+import store from 'state/store';
+
+let currentBuilder;
+export default function dataBuilder(item) {
+    return currentBuilder?.(item);
+}
+
+// New pattern (recommended)
+import { createConnectedRefDataBuilder } from './your-new-file';
+
+const refDataBuilder = createConnectedRefDataBuilder({ dynamicTitle: true });
+const refData = refDataBuilder(item);
 ```

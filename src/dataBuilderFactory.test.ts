@@ -1,6 +1,7 @@
 import Immutable from 'immutable';
 import { stopCache } from './cacheFactory';
 import { dataBuilderFactory, DataBuilder } from './dataBuilderFactory';
+import { defaultRegisters } from './defaultRegisters';
 
 describe('dataBuilderFactory', () => {
     afterEach(() => {
@@ -382,6 +383,211 @@ describe('dataBuilderFactory', () => {
             expect(refData?.get('breaks').size).toEqual(1);
             expect(refData?.getIn(['breaks', 0, 'start'])).toEqual('2020-08-24T10:00:00.000');
             expect(refData?.getIn(['breaks', 0, 'end'])).toEqual('2020-08-24T10:15:00.000');
+        });
+    });
+
+    describe('title-composition', () => {
+        const regData = Immutable.Map({
+            PRICELIST_1: Immutable.Map({
+                id: 'PRICELIST_1',
+                'registry-id': 'PRICELIST',
+                values: Immutable.Map({
+                    HOURLY_PRICE: 98,
+                }),
+            }),
+            TASK_1: Immutable.Map({
+                id: 'TASK_1',
+                'registry-id': 'TASKS',
+                values: Immutable.Map({
+                    TASK_PRICE_FIELD: 105,
+                    TASK_PRICELIST_FIELD_REF: 'HOURLY_PRICE',
+                }),
+            }),
+            TASK_2: Immutable.Map({
+                id: 'TASK_2',
+                'registry-id': 'TASKS',
+                values: Immutable.Map({
+                    TASK_PRICE_FIELD: 49,
+                }),
+            }),
+            CUSTOMER_1: Immutable.Map({
+                id: 'CUSTOMER_1',
+                title: 'Customer 001',
+                'registry-id': 'CUSTOMERS',
+                values: Immutable.Map({
+                    CUSTOMER_PRICELIST_FIELD_REF: 'HOURLY_PRICE',
+                }),
+            }),
+        });
+
+        it('does not compose title when dynamic is not configured', () => {
+            const staticTitleFields = Immutable.Map({
+                TITLE_FIELD: Immutable.Map({
+                    id: 'TITLE_FIELD',
+                    'field-id': 'title',
+                    'field-type': 'text',
+                    'field-section': 'generic',
+                    // No dynamic settings
+                }),
+                FIELD_A: Immutable.Map({
+                    id: 'FIELD_A',
+                    'field-id': 'field-a',
+                    'field-type': 'text',
+                    'field-section': 'generic',
+                }),
+            });
+
+            const staticTitleDataBuilder = dataBuilderFactory(staticTitleFields, regData, users);
+
+            const refData = staticTitleDataBuilder(
+                Immutable.Map({
+                    id: 'ITEM1',
+                    'registry-id': 'TEST',
+                    title: 'Static Title',
+                    values: Immutable.Map({
+                        FIELD_A: 'Value A',
+                    }),
+                })
+            );
+
+            // Should use the static title from the item
+            expect(refData?.get('title')).toEqual('Static Title');
+        });
+
+        it('applies title composition when enabled with settings', () => {
+            const fields = Immutable.Map({
+                FIELD_A: Immutable.Map({
+                    id: 'FIELD_A',
+                    'field-id': 'field-a',
+                    'field-type': 'text',
+                    'field-section': 'generic',
+                }),
+                FIELD_B: Immutable.Map({
+                    id: 'FIELD_B',
+                    'field-id': 'field-b',
+                    'field-type': 'text',
+                    'field-section': 'generic',
+                }),
+            });
+
+            const dynamicTitleSetting = Immutable.Map({
+                [`${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`]: Immutable.Map({
+                    separator: ' - ',
+                    fields: Immutable.List([Immutable.Map({ id: 'FIELD_A' }), Immutable.Map({ id: 'FIELD_B' })]),
+                }),
+            });
+
+            const dataBuilder = dataBuilderFactory(fields, regData, users, undefined, undefined, dynamicTitleSetting);
+
+            const refData = dataBuilder(
+                Immutable.Map({
+                    id: 'ITEM1',
+                    'registry-id': 'SHIFTS',
+                    values: Immutable.Map({
+                        FIELD_A: 'Value A',
+                        FIELD_B: 'Value B',
+                    }),
+                })
+            );
+
+            expect(refData?.get('title')).toEqual('Value A - Value B');
+        });
+
+        it('uses path-based title when no fields configured', () => {
+            const dynamicTitleSetting = Immutable.Map({
+                [`${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`]: Immutable.Map({
+                    separator: ' | ',
+                    fields: Immutable.List(), // Empty fields list
+                }),
+            });
+
+            const dataBuilder = dataBuilderFactory(
+                Immutable.Map(),
+                regData,
+                users,
+                undefined,
+                undefined,
+                dynamicTitleSetting
+            );
+
+            const refData = dataBuilder(
+                Immutable.Map({
+                    id: 'ITEM1',
+                    'registry-id': 'SHIFTS',
+                    title: 'Shift Title',
+                    values: Immutable.Map({}),
+                })
+            );
+
+            // Should use the path-based title (which would be the item's title)
+            expect(refData?.get('title')).toEqual('Shift Title');
+        });
+
+        it('composes dynamic title with user data structure', () => {
+            const dynamicTitleSetting = Immutable.fromJS({
+                id: '553e2f1f3029e0478fc757f2/dynamic-title',
+                value: {
+                    separator: ', ',
+                    fields: [
+                        {
+                            formatId: 'standard',
+                            id: 'title-6894be7bca96a32dabf1fd96',
+                        },
+                        {
+                            formatId: 'standard',
+                            id: '6894be8a6d3f9a793f88a958',
+                        },
+                        {
+                            formatId: 'standard',
+                            id: '6894be826d3f9a793f88a957',
+                        },
+                    ],
+                },
+            });
+
+            const item = Immutable.Map({
+                id: 'test-item',
+                'registry-id': 'test-registry',
+                title: 'Original Title',
+                values: Immutable.Map({
+                    'title-6894be7bca96a32dabf1fd96': 'Boobatea',
+                    '6894be8a6d3f9a793f88a958': '19-20',
+                    '6894be826d3f9a793f88a957': 'BT',
+                }),
+            });
+
+            const regFields = Immutable.Map({
+                'title-6894be7bca96a32dabf1fd96': Immutable.Map({
+                    'field-id': 'custom-title',
+                    id: 'title-6894be7bca96a32dabf1fd96',
+                    'field-type': 'string',
+                    weight: 1,
+                }),
+                '6894be8a6d3f9a793f88a958': Immutable.Map({
+                    'field-id': 'default-string',
+                    id: '6894be8a6d3f9a793f88a958',
+                    'field-type': 'string',
+                    weight: 2,
+                }),
+                '6894be826d3f9a793f88a957': Immutable.Map({
+                    'field-id': 'default-string',
+                    id: '6894be826d3f9a793f88a957',
+                    'field-type': 'string',
+                    weight: 3,
+                }),
+            });
+
+            const refDataBuilder = dataBuilderFactory(
+                regFields,
+                Immutable.Map(),
+                Immutable.Map(),
+                undefined,
+                undefined,
+                dynamicTitleSetting
+            );
+            const refData = refDataBuilder(item);
+
+            expect(refData?.get('title')).toBe('Boobatea, 19-20, BT');
         });
     });
 });
