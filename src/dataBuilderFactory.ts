@@ -6,7 +6,7 @@ import isString from 'lodash/isString';
 import _isEmpty from 'lodash/isEmpty';
 import { defaultRegisters } from './defaultRegisters';
 import { cacheFactory } from './cacheFactory';
-import { titlesFromPath } from './titleBuilder';
+import { composeTitle } from './titleBuilder';
 import type {
     FieldInstance,
     RefData,
@@ -359,14 +359,29 @@ function dataBuilderFactory(
 
         data = data.set('original', item);
 
-        // Apply title composition if enabled
-        if (dynamicTitleSetting && regFields) {
-            const composedTitle = titlesFromPath(data.asImmutable(), undefined, dynamicTitleSetting, regFields);
+        // Apply title composition - only for shift registry items
+        const isShiftEntity = Boolean(bookedUsers);
+        console.group('@registry-utils: dataBuilderFactory: title composition');
+        console.log('dynamicTitleSetting', dynamicTitleSetting);
+        console.log('regFields', regFields);
+        console.log('isShiftEntity', isShiftEntity);
+        console.groupEnd();
+
+        if (isShiftEntity) {
+            // For shift items, try to compose title - composeTitle has fallback logic
+            const composedTitle = composeTitle(data.asImmutable(), undefined, dynamicTitleSetting, regFields);
             if (composedTitle) {
                 data = data.set('title', composedTitle);
+            } else {
+                // Fallback to original title if composition fails or returns null
+                const originalTitle = item.get('title');
+                if (originalTitle) {
+                    data = data.set('title', originalTitle);
+                }
+                // If no original title, don't set anything (let it be undefined)
             }
         } else {
-            // If title composition is not enabled, preserve the original title from the item
+            // For non-shift items, preserve the original title
             const originalTitle = item.get('title');
             if (originalTitle) {
                 data = data.set('title', originalTitle);

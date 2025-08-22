@@ -36,6 +36,49 @@ const refData = refDataBuilder(shift);
 
 The library supports dynamic title composition that can combine multiple registry fields into a single title string. This is particularly useful for creating searchable, human-readable titles from complex registry data.
 
+**Note**: Dynamic title composition is only applied to shift registry items (items that have a `booked-users` field). This ensures that time reports and other registry types preserve their original titles.
+
+### Supported Title Composition Methods
+
+This library handles the following title composition scenarios:
+
+1. **Field-Based Composition**: Combines values from specific registry fields using a custom separator
+2. **Path-Based Composition**: Uses registry reference paths to build hierarchical titles
+3. **Separator-Only Detection**: Automatically falls back to original titles when composition results in separator-only strings
+
+### Additional Title Composition Use Cases
+
+The following title composition scenarios are handled separately in the main application (`tzcontrol`) and are not processed by this library:
+
+#### 1. Shift Title from Order (`shiftTitleFromOrder`)
+
+Creates titles from order form fields and supplier information:
+
+```typescript
+if (item.status === 'order-outgoing') {
+    title = shiftTitleFromOrder(item, form, supplier);
+}
+```
+
+#### 2. Shift Title from RFQ (`shiftTitleFromRFQ`)
+
+Creates titles from RFQ (Request for Quote) relations:
+
+```typescript
+if (item.getIn?.(['relations', 'incoming-rfq-id'])) {
+    title = shiftTitleFromRFQ(item);
+}
+```
+
+**Important**: These additional title composition methods are intentionally kept separate from this library to:
+
+-   Prevent additional Redux store dependencies
+-   Avoid increasing registry utility complexity
+-   Keep UI-specific title logic in the main application
+-   Maintain clear separation of concerns
+
+These methods are used for UI display purposes only and should not be expected to be processed in the `refData` object.
+
 ### Configuration Structure
 
 The dynamic title settings follow this structure:
@@ -130,15 +173,19 @@ const settings = Immutable.fromJS({
 You can also use the title composition functions directly:
 
 ```typescript
-import { titlesFromPath, createTitleBuilder } from 'timezynk-registry-utils';
+import { composeTitle, createTitleBuilder } from 'timezynk-registry-utils';
 
 // Compose title from existing refData
-const composedTitle = titlesFromPath(refData, undefined, settings, registryFields);
+const composedTitle = composeTitle(refData, undefined, settings, registryFields);
 
 // Create a reusable title builder
 const titleBuilder = createTitleBuilder(settings, registryFields);
 const title = titleBuilder(refData);
 ```
+
+**Note**: `composeTitle` is the main entry point that handles both field-based and path-based title composition automatically based on your settings configuration.
+
+**Important**: In most cases, you should get the title directly from `refData.get('title')` rather than calling `composeTitle` manually. The `dataBuilderFactory` automatically applies title composition when building refData, so React components and other consumers should simply use the pre-computed title from the refData object.
 
 ## Integration with Redux Store
 
@@ -219,12 +266,12 @@ A memoized version of `dataBuilderFactory` for performance optimization.
 const memoizedDataBuilderFactory = defaultMemoize(dataBuilderFactory);
 ```
 
-### titlesFromPath
+### composeTitle
 
 Composes a title from reference data using configured settings.
 
 ```typescript
-function titlesFromPath(
+function composeTitle(
     data: RefData,
     removeId?: string,
     settings?: Immutable.Map<string, any> | any,
@@ -249,6 +296,35 @@ function createTitleBuilder(
     regFields: Immutable.Map<string, FieldInstance>
 ): (refData: RefData, removeId?: string) => string;
 ```
+
+## Best Practices
+
+### Using Titles in React Components
+
+**✅ Recommended**: Get title from refData
+
+```tsx
+const MyComponent = ({ item }) => {
+    const refData = dataBuilder(item);
+    const title = refData.get('title'); // Pre-computed by dataBuilderFactory
+
+    return <div>{title}</div>;
+};
+```
+
+**❌ Not recommended**: Manual title composition
+
+```tsx
+const MyComponent = ({ item, settings, regFields }) => {
+    const refData = dataBuilder(item);
+    // Don't do this - title is already computed in refData
+    const title = composeTitle(refData, undefined, settings, regFields);
+
+    return <div>{title}</div>;
+};
+```
+
+The `dataBuilderFactory` automatically handles title composition during refData creation, so consumers should use the pre-computed `title` field rather than calling title composition functions directly.
 
 ## How Path Works
 
