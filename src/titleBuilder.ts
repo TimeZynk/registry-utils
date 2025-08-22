@@ -5,7 +5,7 @@ import type { RefData, RefDataAccumulator, FieldInstance } from './types';
 
 const SHIFT_TITLE_SETTING_ID = `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`;
 
-let titleBuilder: ((refData: RefData, removeId?: string) => string) | null = null;
+let titleBuilder: ((refData: RefData, removeId?: string) => string | null) | null = null;
 let lastSettings: Immutable.Map<string, any> | null = null;
 
 interface TitleField {
@@ -52,7 +52,7 @@ const createTitleBuilder = defaultMemoize(
     (
         settings: Immutable.Map<string, any> | any,
         regFields: Immutable.Map<string, FieldInstance>
-    ): ((refData: RefData, removeId?: string) => string) => {
+    ): ((refData: RefData, removeId?: string) => string | null) => {
         // Convert to Immutable.Map if it's not already
         const settingsMap = Immutable.Map.isMap(settings) ? settings : Immutable.fromJS(settings);
 
@@ -75,24 +75,49 @@ const createTitleBuilder = defaultMemoize(
 /**
  * Creates a path-based title builder (fallback method)
  */
-function createPathBasedTitleBuilder(separator: string): (refData: RefData, removeId?: string) => string {
-    return (refData: RefData, removeId?: string): string => {
+function createPathBasedTitleBuilder(separator: string): (refData: RefData, removeId?: string) => string | null {
+    return (refData: RefData, removeId?: string): string | null => {
         let parts = (refData && refData.get('path')) || Immutable.List();
 
         if (removeId) {
             parts = parts.filterNot((d: any) => d.get('registry-id') === removeId);
         }
+
         parts = parts.map((d: any) => d.get('title'));
 
         // If no path data, try to use the item's title from the original
         if (parts.isEmpty()) {
             const original = refData.get('original');
             if (original && original.get('title')) {
-                return original.get('title');
+                const originalTitle = original.get('title');
+                return originalTitle;
             }
         }
 
-        return parts.join(separator);
+        const result = parts.join(separator);
+
+        // Check if the result is just separators (empty or only contains separator characters)
+        const trimmedResult = result.trim();
+
+        // Check if the result is empty or consists only of separator characters
+        if (!trimmedResult) {
+            return null;
+        }
+
+        // Check if the result consists only of separators and empty parts
+        const splitParts = trimmedResult.split(separator);
+        const hasNonEmptyParts = splitParts.some((part) => part.trim());
+        if (!hasNonEmptyParts) {
+            return null;
+        }
+
+        // Additional check: if the result consists only of separator characters (like ", ,")
+        const separatorOnlyRegex = new RegExp(`^[${separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]*$`);
+        if (separatorOnlyRegex.test(trimmedResult)) {
+            return null;
+        }
+
+        return result;
     };
 }
 
@@ -103,8 +128,8 @@ function createFieldBasedTitleBuilder(
     fields: Immutable.List<any>,
     separator: string,
     regFields: Immutable.Map<string, FieldInstance>
-): (refData: RefData) => string {
-    return (refData: RefData): string => {
+): (refData: RefData) => string | null {
+    return (refData: RefData): string | null => {
         const parts =
             refData &&
             fields.map((field: any) => {
@@ -115,18 +140,45 @@ function createFieldBasedTitleBuilder(
                 if (formatId && regFields) {
                     // Try to get formatter from regFields
                     const fieldInstance = regFields.get(formatId);
+
                     if (fieldInstance && fieldInstance.get && typeof fieldInstance.get === 'function') {
                         const formatter = fieldInstance.get('formatter');
+
                         if (formatter && typeof formatter === 'function') {
-                            return formatter(value);
+                            const formattedValue = formatter(value);
+                            return formattedValue;
                         }
                     }
                 }
 
-                return value ? String(value) : '';
+                const result = value ? String(value) : '';
+                return result;
             });
 
-        return (parts && parts.join(separator)) || '';
+        const finalResult = (parts && parts.join(separator)) || '';
+
+        // Check if the result is just separators (empty or only contains separator characters)
+        const trimmedResult = finalResult.trim();
+
+        // Check if the result is empty or consists only of separator characters
+        if (!trimmedResult) {
+            return null;
+        }
+
+        // Check if the result consists only of separators and empty parts
+        const splitParts = trimmedResult.split(separator);
+        const hasNonEmptyParts = splitParts.some((part) => part.trim());
+        if (!hasNonEmptyParts) {
+            return null;
+        }
+
+        // Additional check: if the result consists only of separator characters (like ", ,")
+        const separatorOnlyRegex = new RegExp(`^[${separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]*$`);
+        if (separatorOnlyRegex.test(trimmedResult)) {
+            return null;
+        }
+
+        return finalResult;
     };
 }
 
@@ -139,8 +191,7 @@ function composeTitle(
     removeId?: string,
     settings?: Immutable.Map<string, any> | any,
     regFields?: Immutable.Map<string, FieldInstance>
-): string {
-    // Convert settings to Immutable.Map if needed
+): string | null {
     const settingsMap = settings ? (Immutable.Map.isMap(settings) ? settings : Immutable.fromJS(settings)) : undefined;
 
     // Reset titleBuilder if settings have changed
@@ -156,7 +207,8 @@ function composeTitle(
 
     // Use titleBuilder if available, otherwise fallback to path-based
     if (titleBuilder) {
-        return titleBuilder(data, removeId);
+        const result = titleBuilder(data, removeId);
+        return result;
     }
 
     // Fallback to simple path-based title composition
@@ -169,11 +221,18 @@ function composeTitle(
         }
     }
 
-    return createPathBasedTitleBuilder(separator)(data, removeId);
+    const result = createPathBasedTitleBuilder(separator)(data, removeId);
+
+    // Check if the fallback result is just separators
+    if (result) {
+        const trimmedResult = result.trim();
+        if (!trimmedResult || trimmedResult.split(separator).every((part) => !part.trim())) {
+            return null;
+        }
+    }
+
+    return result;
 }
 
-// Create a memoized version of composeTitle for performance
-const memoizedComposeTitle = defaultMemoize(composeTitle);
-
 // Export the main function and the builder creator for advanced usage
-export { composeTitle, createTitleBuilder, memoizedComposeTitle };
+export { composeTitle, createTitleBuilder };
