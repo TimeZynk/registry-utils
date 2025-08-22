@@ -361,11 +361,6 @@ function dataBuilderFactory(
 
         // Apply title composition - only for shift registry items
         const isShiftEntity = Boolean(bookedUsers);
-        console.group('@registry-utils: dataBuilderFactory: title composition');
-        console.log('dynamicTitleSetting', dynamicTitleSetting);
-        console.log('regFields', regFields);
-        console.log('isShiftEntity', isShiftEntity);
-        console.groupEnd();
 
         if (isShiftEntity) {
             // For shift items, try to compose title - composeTitle has fallback logic
@@ -394,7 +389,6 @@ function dataBuilderFactory(
         if (cacheKey) {
             cache.set(cacheKey, data);
         }
-        console.log('@registry-utils: final data', data);
         return data;
     };
 }
