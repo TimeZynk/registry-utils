@@ -9,7 +9,7 @@ const DEFAULT_MAXSIZE = 1024;
 
 const caches: Record<string, any> = {};
 let nextId = 1;
-let gcInterval: NodeJS.Timer | null = null;
+let gcInterval: ReturnType<typeof setInterval> | null = null;
 
 function gc(): void {
     const now = new Date().getTime();
