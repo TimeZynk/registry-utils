@@ -6,6 +6,7 @@ import isString from 'lodash/isString';
 import _isEmpty from 'lodash/isEmpty';
 import { defaultRegisters } from './defaultRegisters';
 import { cacheFactory } from './cacheFactory';
+import { composeTitle } from './titleBuilder';
 import type {
     FieldInstance,
     RefData,
@@ -129,13 +130,15 @@ function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInst
  * @param {Immutable.Map} users Users
  * @param {Immutable.Map} invoiceArticles Invoice articles (optional)
  * @param {Immutable.Map} salaryArticles Salary articles (optional)
+ * @param {Immutable.Map} dynamicTitleSetting Dynamic title composition settings (optional)
  */
 function dataBuilderFactory(
     regFields: Immutable.Map<string, FieldInstance> | undefined,
     regData: Immutable.Map<string, RegistryDataInstance>,
     users: Immutable.Map<string, User>,
     invoiceArticles?: Immutable.Map<string, InvoiceArticle>,
-    salaryArticles?: Immutable.Map<string, SalaryArticle>
+    salaryArticles?: Immutable.Map<string, SalaryArticle>,
+    dynamicTitleSetting?: Immutable.Map<string, any>
 ): DataBuilder {
     const fieldInstances = regFields ? regFields.sortBy(byPriority) : Immutable.Map<string, FieldInstance>();
     cache && cache.flush && cache.flush();
@@ -240,16 +243,19 @@ function dataBuilderFactory(
     }
 
     function mergeDefaultValues(acc: RefDataAccumulator): RefDataAccumulator {
-        return fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
-            const innerAcc = reduction as RefDataAccumulator;
-            const fieldInstance = maybeFieldInstance as FieldInstance;
-            const value = fieldInstance.getIn(['values', 'default-val']);
-            if (isEmpty(value) || fieldInstance.get('archived')) {
-                return innerAcc;
-            }
+        return fieldInstances.reduce(
+            (reduction: RefDataAccumulator | undefined, maybeFieldInstance: FieldInstance | undefined) => {
+                const innerAcc = reduction || acc;
+                const fieldInstance = maybeFieldInstance as FieldInstance;
+                const value = fieldInstance.getIn(['values', 'default-val']);
+                if (isEmpty(value) || fieldInstance.get('archived')) {
+                    return innerAcc;
+                }
 
-            return applyValue(innerAcc, fieldInstance, value);
-        }, acc);
+                return applyValue(innerAcc, fieldInstance, value);
+            },
+            acc
+        );
     }
 
     function mergeValues(acc: RefDataAccumulator, item: RegistryDataInstance): RefDataAccumulator {
@@ -259,27 +265,35 @@ function dataBuilderFactory(
         const values = item.get('values') || Immutable.Map();
         const registryId = item.get('registry-id');
 
-        const refData = fieldInstances.reduce((reduction: unknown, maybeFieldInstance: unknown) => {
-            const innerAcc = reduction as RefDataAccumulator;
-            const fi = maybeFieldInstance as FieldInstance;
-            if (registryId && registryId !== fi.get('registry-id')) {
-                return innerAcc;
-            }
+        const refData = fieldInstances.reduce(
+            (reduction: RefDataAccumulator | undefined, maybeFieldInstance: FieldInstance | undefined) => {
+                const innerAcc = reduction || acc;
+                const fi = maybeFieldInstance as FieldInstance;
+                const fieldRegistryId = fi.get('registry-id');
 
-            const v = getValue(item, values, fi);
-            if (isEmpty(v)) {
-                return innerAcc;
-            }
+                // Skip if field has a specific registry-id that doesn't match the item's registry-id
+                if (fieldRegistryId && registryId && registryId !== fieldRegistryId) {
+                    return innerAcc;
+                }
 
-            const fid = fi.get('field-id');
-            let nextAcc = applyValue(innerAcc, fi, v);
-            if (item && fid === 'customer-no' && !nextAcc.getIn(['invoice-head', 'customer-name'])) {
-                // Copy customer name from title
-                nextAcc = nextAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
-            }
+                const fid = fi.get('field-id');
 
-            return nextAcc;
-        }, acc);
+                const v = getValue(item, values, fi);
+
+                if (isEmpty(v)) {
+                    return innerAcc;
+                }
+
+                let nextAcc = applyValue(innerAcc, fi, v);
+                if (item && fid === 'customer-no' && !nextAcc.getIn(['invoice-head', 'customer-name'])) {
+                    // Copy customer name from title
+                    nextAcc = nextAcc.setIn(['invoice-head', 'customer-name'], item.get('title'));
+                }
+
+                return nextAcc;
+            },
+            acc
+        );
 
         return refData;
     }
@@ -294,8 +308,8 @@ function dataBuilderFactory(
             return refData;
         }
         return fieldInstances
-            .reduce((reduction: unknown, maybeFieldInstance: unknown) => {
-                const innerAcc = reduction as RefDataAccumulator;
+            .reduce((reduction: RefDataAccumulator | undefined, maybeFieldInstance: FieldInstance | undefined) => {
+                const innerAcc = reduction || refData.asMutable();
                 const fieldInstance = maybeFieldInstance as FieldInstance;
                 if (fieldInstance.get('field-type') !== 'field-reference') {
                     return innerAcc;
@@ -342,14 +356,39 @@ function dataBuilderFactory(
         data = mergeValues(data, item);
 
         data = resolveFieldReferences(data);
+
         data = data.set('original', item);
+
+        // Apply title composition - only for shift registry items
+        const isShiftEntity = Boolean(bookedUsers);
+
+        if (isShiftEntity) {
+            // For shift items, try to compose title - composeTitle has fallback logic
+            const composedTitle = composeTitle(data.asImmutable(), undefined, dynamicTitleSetting, regFields);
+            if (composedTitle) {
+                data = data.set('title', composedTitle);
+            } else {
+                // Fallback to original title if composition fails or returns null
+                const originalTitle = item.get('title');
+                if (originalTitle) {
+                    data = data.set('title', originalTitle);
+                }
+                // If no original title, don't set anything (let it be undefined)
+            }
+        } else {
+            // For non-shift items, preserve the original title
+            const originalTitle = item.get('title');
+            if (originalTitle) {
+                data = data.set('title', originalTitle);
+            }
+        }
+
         data = data.remove('_visited');
         data = data.asImmutable();
 
         if (cacheKey) {
             cache.set(cacheKey, data);
         }
-
         return data;
     };
 }
