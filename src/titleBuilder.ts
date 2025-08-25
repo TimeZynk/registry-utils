@@ -1,7 +1,7 @@
 import Immutable from 'immutable';
 import { defaultMemoize } from 'reselect';
 import { defaultRegisters } from './defaultRegisters';
-import type { RefData, RefDataAccumulator, FieldInstance } from './types';
+import type { RefData, FieldInstance } from './types';
 
 const SHIFT_TITLE_SETTING_ID = `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`;
 
@@ -13,6 +13,7 @@ interface TitleField {
     formatId?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface TitleSetting {
     separator: string;
     fields: Immutable.List<TitleField>;

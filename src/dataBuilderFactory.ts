@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import Immutable from 'immutable';
-import { defaultMemoize } from 'reselect'; // eslint-disable-li;
+import { defaultMemoize } from 'reselect';
 import isNil from 'lodash/isNil';
 import isString from 'lodash/isString';
 import _isEmpty from 'lodash/isEmpty';
@@ -141,7 +141,9 @@ function dataBuilderFactory(
     dynamicTitleSetting?: Immutable.Map<string, any>
 ): DataBuilder {
     const fieldInstances = regFields ? regFields.sortBy(byPriority) : Immutable.Map<string, FieldInstance>();
-    cache && cache.flush && cache.flush();
+    if (cache && cache.flush) {
+        cache.flush();
+    }
 
     function mergeUserValues(acc: RefDataAccumulator, id: string): RefDataAccumulator {
         let referencedValues = cache.get(id);

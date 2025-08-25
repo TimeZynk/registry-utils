@@ -1,10 +1,11 @@
 {
     "name": "timezynk-registry-utils",
+    "type": "module",
     "version": "0.6.6",
     "description": "Utilities for working with Timezynk registries.",
     "repository": {
         "type": "git",
-        "url": "git@github.com:TimeZynk/registry-utils.git"
+        "url": "git@github.com:timezynk/registry-utils.git"
     },
     "files": [
         "lib/**/*"
@@ -17,9 +18,10 @@
         "version": "npm run format && git add -A src",
         "postversion": "git push && git push --tags",
         "format": "prettier --write \"src/**/*.ts\"",
-        "test": "TZ=UTC jest",
+        "test": "TZ=UTC vitest run",
+        "test:watch": "TZ=UTC vitest",
         "build": "tsc",
-        "lint": "eslint src --ext .ts"
+        "lint": "eslint src"
     },
     "dependencies": {
         "immutable": "^3.8.2",
@@ -27,18 +29,17 @@
         "reselect": "^4.1.6"
     },
     "devDependencies": {
-        "@types/jest": "^25.2.3",
-        "@types/lodash": "^4.14.184",
-        "@typescript-eslint/eslint-plugin": "^5.36.2",
-        "@typescript-eslint/parser": "^5.36.2",
+        "@eslint/js": "^9.34.0",
+        "@typescript-eslint/eslint-plugin": "^8.40.0",
+        "@typescript-eslint/parser": "^8.40.0",
+        "@vitest/ui": "^3.2.4",
         "babel-eslint": "^10.1.0",
-        "eslint": "^8.23.0",
-        "eslint-config-prettier": "^8.5.0",
-        "eslint-plugin-prettier": "^4.2.1",
-        "jest": "^27.5.1",
-        "prettier": "^2.7.1",
-        "ts-jest": "^27.1.5",
-        "typescript": "^4.8.2"
+        "eslint": "^8.57.1",
+        "eslint-config-prettier": "^10.1.8",
+        "eslint-plugin-prettier": "^5.5.4",
+        "prettier": "^3.6.2",
+        "typescript": "^4.9.5",
+        "vitest": "^3.2.4"
     },
     "author": "Timezynk AB",
     "license": "MIT"

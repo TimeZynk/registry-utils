@@ -1,3 +1,4 @@
+import { describe, it, expect, afterEach } from 'vitest';
 import Immutable from 'immutable';
 import { stopCache } from './cacheFactory';
 import { dataBuilderFactory, DataBuilder } from './dataBuilderFactory';
@@ -19,7 +20,7 @@ describe('Custom value', () => {
     // Things to try to find the bug:
     // - Debug the test that pass in the debugger
     // - Debug the actual code from the ui
-    // - More complex test date — copy from browser?
+    // - More complex test date - copy from browser?
     // - memoized
     // - global state - cache
     // - call functions twice
