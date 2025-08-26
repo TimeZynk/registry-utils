@@ -5,7 +5,7 @@
     "description": "Utilities for working with Timezynk registries.",
     "repository": {
         "type": "git",
-        "url": "git@github.com:timezynk/registry-utils.git"
+        "url": "https://github.com/TimeZynk/registry-utils"
     },
     "files": [
         "lib"
@@ -51,5 +51,13 @@
         "npm": ">=10.0.0"
     },
     "author": "Timezynk AB",
-    "license": "MIT"
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/TimeZynk/registry-utils/issues"
+    },
+    "homepage": "https://github.com/TimeZynk/registry-utils#readme",
+    "publishConfig": {
+        "registry": "https://registry.npmjs.org/",
+        "provenance": "true"
+    }
 }
