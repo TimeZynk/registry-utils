@@ -1,8 +1,5 @@
-import forEach from 'lodash/forEach';
-import isUndefined from 'lodash/isUndefined';
-import flow from 'lodash/fp/flow';
-import sortBy from 'lodash/fp/sortBy';
-import reduce from 'lodash/fp/reduce';
+import { forEach, isUndefined } from 'lodash-es';
+import { flow, sortBy, reduce } from './utils/lodashFp.js';
 
 const DEFAULT_LIFETIME = 120000;
 const DEFAULT_MAXSIZE = 1024;
@@ -60,6 +57,7 @@ export function cacheFactory(
         let size = 0;
 
         const tmpData = flow(
+            (obj: Record<string, [string, number]>) => Object.values(obj),
             sortBy(mostRecentlyUsed),
             reduce(function (acc: Record<string, any>, entry: [string, number]) {
                 const id = entry[0];

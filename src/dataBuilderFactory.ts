@@ -1,24 +1,19 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import Immutable from 'immutable';
 import { defaultMemoize } from 'reselect';
-import isNil from 'lodash/isNil';
-import isString from 'lodash/isString';
-import _isEmpty from 'lodash/isEmpty';
-import { defaultRegisters } from './defaultRegisters';
-import { cacheFactory } from './cacheFactory';
-import { composeTitle } from './titleBuilder';
+import { isNil, isString, isEmpty as lodashIsEmpty } from 'lodash-es';
+import { defaultRegisters } from './defaultRegisters.js';
+import { cacheFactory } from './cacheFactory.js';
+import { composeTitle } from './titleBuilder.js';
 import type {
-    FieldInstance,
     RefData,
     RefDataAccumulator,
-    RegistryDataInstance,
-    User,
+    FieldInstance,
     FieldValue,
-    FieldValues,
     InvoiceArticle,
     SalaryArticle,
     DataBuilder,
-} from './types';
+} from './types.js';
 
 const cache = cacheFactory('fieldData');
 let visited: Record<string, boolean> = {};
@@ -58,7 +53,7 @@ function merger(prev: any, next?: any): Immutable.Collection<any, any> {
 }
 
 function isEmpty(v: any): boolean {
-    if (isNil(v) || (isString(v) && _isEmpty(v))) {
+    if (isNil(v) || (isString(v) && lodashIsEmpty(v))) {
         return true;
     }
     if (Immutable.Iterable.isIterable(v)) {
@@ -90,7 +85,7 @@ function trimAddress(value: FieldValue): FieldValue {
     return value;
 }
 
-function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInstance): FieldValue {
+function getValue(item: any, values: Immutable.Map<string, any>, fi: FieldInstance): FieldValue {
     const fieldId = fi.get('field-id');
     if (fieldId === 'title') {
         return item && item.get('title');
@@ -134,8 +129,8 @@ function getValue(item: RegistryDataInstance, values: FieldValues, fi: FieldInst
  */
 function dataBuilderFactory(
     regFields: Immutable.Map<string, FieldInstance> | undefined,
-    regData: Immutable.Map<string, RegistryDataInstance>,
-    users: Immutable.Map<string, User>,
+    regData: Immutable.Map<string, any>,
+    users: Immutable.Map<string, any>,
     invoiceArticles?: Immutable.Map<string, InvoiceArticle>,
     salaryArticles?: Immutable.Map<string, SalaryArticle>,
     dynamicTitleSetting?: Immutable.Map<string, any>
@@ -260,7 +255,7 @@ function dataBuilderFactory(
         );
     }
 
-    function mergeValues(acc: RefDataAccumulator, item: RegistryDataInstance): RefDataAccumulator {
+    function mergeValues(acc: RefDataAccumulator, item: any): RefDataAccumulator {
         if (!item || !item.get) {
             return acc;
         }
@@ -327,7 +322,7 @@ function dataBuilderFactory(
             .asImmutable();
     }
 
-    return (item: RegistryDataInstance, notCahced?: boolean): RefData | null => {
+    return (item: any, notCahced?: boolean): RefData | null => {
         if (!item || !item.get) {
             return null;
         }
