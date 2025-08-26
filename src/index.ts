@@ -1,8 +1,8 @@
-import { cacheFactory } from './cacheFactory';
-import { memoizedDataBuilderFactory } from './dataBuilderFactory';
-import * as registryDefaultData from './registryDefaultData';
-import { defaultRegisters } from './defaultRegisters';
-import { composeTitle, createTitleBuilder } from './titleBuilder';
+import { cacheFactory } from './cacheFactory.js';
+import { memoizedDataBuilderFactory } from './dataBuilderFactory.js';
+import * as registryDefaultData from './registryDefaultData.js';
+import { defaultRegisters } from './defaultRegisters.js';
+import { composeTitle, createTitleBuilder } from './titleBuilder.js';
 
 export {
     cacheFactory,
@@ -24,6 +24,6 @@ export type {
     InvoiceArticle,
     SalaryArticle,
     DataBuilder,
-} from './types';
+} from './types.js';
 
 export default memoizedDataBuilderFactory;
