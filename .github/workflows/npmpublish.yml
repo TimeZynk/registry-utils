@@ -11,23 +11,41 @@ jobs:
     build:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v1
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
               with:
-                  node-version: 12
-            - run: npm ci
+                  node-version: '24'
+                  check-latest: true
+                  cache: 'npm'
+
+            - run: node -v && npm -v
+            - run: npm ci --include=dev
             - run: npm test
+              env:
+                  CI: true
 
     publish-npm:
         needs: build
         runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            id-token: write # required for provenance (optional)
+
         steps:
-            - uses: actions/checkout@v2
-            - uses: actions/setup-node@v1
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
               with:
-                  node-version: 12
+                  node-version: '24'
+                  check-latest: true
                   registry-url: https://registry.npmjs.org/
-            - run: npm ci
-            - run: npm publish
+                  cache: 'npm'
+
+            - run: npm ci --include=dev
+
+            # If publishing a public package, keep --access public (scoped) or omit for unscoped
+            # Add --provenance if you want npm provenance attached (requires id-token permission)
+            - run: npm publish --access public --provenance
               env:
-                  NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+                  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
