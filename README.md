@@ -6,11 +6,11 @@ A utility library for building reference data from registry structures in Timezy
 
 ## Features
 
--   **Data Builder Factory**: Creates functions that build reference data from registry items
--   **Field Reference Resolution**: Automatically resolves field references across registry structures
--   **Dynamic Title Composition**: Compose dynamic titles from multiple registry fields with custom separators
--   **Caching**: Built-in caching for performance optimization
--   **Memoization Support**: Export memoized builder factory for performance optimization
+- **Data Builder Factory**: Creates functions that build reference data from registry items
+- **Field Reference Resolution**: Automatically resolves field references across registry structures
+- **Dynamic Title Composition**: Compose dynamic titles from multiple registry fields with custom separators
+- **Caching**: Built-in caching for performance optimization
+- **Memoization Support**: Export memoized builder factory for performance optimization
 
 ## Installation
 
@@ -72,10 +72,10 @@ if (item.getIn?.(['relations', 'incoming-rfq-id'])) {
 
 **Important**: These additional title composition methods are intentionally kept separate from this library to:
 
--   Prevent additional Redux store dependencies
--   Avoid increasing registry utility complexity
--   Keep UI-specific title logic in the main application
--   Maintain clear separation of concerns
+- Prevent additional Redux store dependencies
+- Avoid increasing registry utility complexity
+- Keep UI-specific title logic in the main application
+- Maintain clear separation of concerns
 
 These methods are used for UI display purposes only and should not be expected to be processed in the `refData` object.
 
@@ -87,20 +87,26 @@ The dynamic title settings follow this structure:
 {
     "id": "553e2f1f3029e0478fc757f2/dynamic-title", // registry-id/dynamic-title
     "value": {
-        "separator": ", ", // Custom separator between field values
+        "separator": " » ", // Custom separator between field values
         "fields": [
             {
-                "formatId": "standard", // Optional formatter ID
+                "formatId": "standard", // Standard field formatter
                 "id": "title-6894be7bca96a32dabf1fd96" // Field ID to include
             },
             {
-                "formatId": "standard",
-                "id": "6894be8a6d3f9a793f88a958"
+                "formatId": "registry-reference", // Registry reference formatter
+                "id": "6894be8a6d3f9a793f88a958" // Field ID that references another registry
             }
         ]
     }
 }
 ```
+
+#### Field Format Types
+
+- **`standard`**: Uses the field value directly or applies a custom formatter if defined
+- **`registry-reference`**: Looks up the title from the referenced registry item in the `path` property
+- **Custom formatters**: Can be defined in the registry fields using the `formatter` property
 
 ### Basic Title Composition
 
@@ -151,6 +157,29 @@ const refData = dataBuilder(
 // Result: refData.get('title') === "Value A - Value B"
 ```
 
+### Registry Reference Title Composition
+
+When a field in your dynamic title settings has `formatId: "registry-reference"`, the system will automatically look up the title from the referenced registry item in the `path` property:
+
+````typescript
+const dynamicTitleSetting = Immutable.fromJS({
+    id: `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`,
+    value: {
+        separator: ' » ',
+        fields: [
+            {
+                formatId: 'registry-reference',
+                id: '68b710c6bda6d25184246fd9', // Field that references another registry
+            },
+        ],
+    },
+});
+
+// This will compose the title using the referenced registry's title from the path
+// Result: "Referenced Registry Title" instead of just the registry ID
+
+**Note**: If the referenced registry item is not found in the `path`, the system falls back to using the raw field value (e.g., the registry ID) to ensure the title composition doesn't fail.
+
 ### Path-Based Title Composition (Fallback)
 
 When no specific fields are configured or when fields list is empty, the system falls back to path-based title composition:
@@ -166,7 +195,7 @@ const settings = Immutable.fromJS({
 
 // This will use the path data (registry references) or fall back to the item's title
 // Result: "Parent Registry Title | Child Registry Title"
-```
+````
 
 ### Manual Title Composition
 
@@ -251,12 +280,12 @@ function dataBuilderFactory(
 
 **Parameters:**
 
--   `regFields`: Registry field definitions
--   `regData`: Registry data instances
--   `users`: User data
--   `invoiceArticles`: Optional invoice articles data
--   `salaryArticles`: Optional salary articles data
--   `dynamicTitleSetting`: Optional dynamic title composition settings
+- `regFields`: Registry field definitions
+- `regData`: Registry data instances
+- `users`: User data
+- `invoiceArticles`: Optional invoice articles data
+- `salaryArticles`: Optional salary articles data
+- `dynamicTitleSetting`: Optional dynamic title composition settings
 
 ### memoizedDataBuilderFactory
 
@@ -281,10 +310,10 @@ function composeTitle(
 
 **Parameters:**
 
--   `data`: The reference data object
--   `removeId`: Optional registry ID to exclude from path-based composition
--   `settings`: Dynamic title composition settings
--   `regFields`: Registry field definitions for formatter support
+- `data`: The reference data object
+- `removeId`: Optional registry ID to exclude from path-based composition
+- `settings`: Dynamic title composition settings
+- `regFields`: Registry field definitions for formatter support
 
 ### createTitleBuilder
 
@@ -350,9 +379,9 @@ The `path` property in `refData` contains a hierarchical trail of registry refer
 }
 ```
 
--   **`path`**: Contains registry references (items that reference other registry items)
--   **`title-{registry-id}`**: Created for each registry reference to store the referenced item's title
--   **Direct field values**: Appear at the root level for regular fields
+- **`path`**: Contains registry references (items that reference other registry items)
+- **`title-{registry-id}`**: Created for each registry reference to store the referenced item's title
+- **Direct field values**: Appear at the root level for regular fields
 
 ## Configuration
 
@@ -387,9 +416,9 @@ const fieldWithFormatter = Immutable.Map({
 
 See the test files for comprehensive examples of how to use the library:
 
--   `src/dataBuilderFactory.test.ts` - Core functionality tests
--   `src/defaultValue.test.ts` - Default value handling
--   `src/salary.test.ts` - Salary-specific functionality
+- `src/dataBuilderFactory.test.ts` - Core functionality tests
+- `src/defaultValue.test.ts` - Default value handling
+- `src/salary.test.ts` - Salary-specific functionality
 
 ## Migration from Legacy dataBuilder
 

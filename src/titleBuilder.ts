@@ -138,6 +138,25 @@ function createFieldBasedTitleBuilder(
                 const formatId = field.get('formatId');
                 const value = refData.get(id);
 
+                // Handle registry-reference formatId - look up title from path
+                if (formatId === 'registry-reference') {
+                    // Find the registry reference in the path
+                    const path = refData.get('path') || Immutable.List();
+                    const registryRef = path.find(
+                        (item: any) => item.get('id') === value || item.get('registry-id') === value
+                    );
+
+                    if (registryRef) {
+                        const registryTitle = registryRef.get('title');
+                        if (registryTitle) {
+                            return registryTitle;
+                        }
+                    }
+
+                    // If no title found in path, try to get from the field value directly
+                    return value ? String(value) : '';
+                }
+
                 if (formatId && regFields) {
                     // Try to get formatter from regFields
                     const fieldInstance = regFields.get(formatId);
