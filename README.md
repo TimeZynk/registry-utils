@@ -38,13 +38,23 @@ The library supports dynamic title composition that can combine multiple registr
 
 **Note**: Dynamic title composition is only applied to shift registry items (items that have a `booked-users` field). This ensures that time reports and other registry types preserve their original titles.
 
+### Enhanced Features
+
+This implementation is based on the original utility but includes several improvements:
+
+- **Registry Reference Support**: Automatically resolves `formatId: "registry-reference"` by looking up titles from the `path` property
+- **Separator-Only Detection**: Prevents malformed titles like `", , "` by returning empty string when composition results in separator-only strings
+- **Performance Optimization**: Uses memoization to avoid recreating title builders unnecessarily
+- **Graceful Fallbacks**: Handles missing registry references gracefully without breaking title composition
+- **Original Behavior Preservation**: Maintains the original utility's behavior where field-based composition takes precedence over path-based fallbacks
+
 ### Supported Title Composition Methods
 
 This library handles the following title composition scenarios:
 
 1. **Field-Based Composition**: Combines values from specific registry fields using a custom separator
-2. **Path-Based Composition**: Uses registry reference paths to build hierarchical titles
-3. **Separator-Only Detection**: Automatically falls back to original titles when composition results in separator-only strings
+2. **Path-Based Composition**: Uses registry reference paths to build hierarchical titles (fallback only when no fields configured)
+3. **Separator-Only Detection**: Returns empty string when composition results in separator-only strings (no fallback to path)
 
 ### Additional Title Composition Use Cases
 
@@ -216,6 +226,16 @@ const title = titleBuilder(refData);
 
 **Important**: In most cases, you should get the title directly from `refData.get('title')` rather than calling `composeTitle` manually. The `dataBuilderFactory` automatically applies title composition when building refData, so React components and other consumers should simply use the pre-computed title from the refData object.
 
+### Behavior When Field-Based Composition Fails
+
+When field-based composition is configured but fails (e.g., all fields are empty or result in separator-only strings):
+
+- **Returns empty string `''`** instead of falling back to path-based composition
+- **No fallback to original title** - the empty string is used as-is
+- **Maintains original utility behavior** where field-based composition takes precedence
+
+This ensures that when you configure specific fields for title composition, the system respects your configuration and doesn't unexpectedly fall back to path-based or original titles.
+
 ## Integration with Redux Store
 
 For applications using Redux, you can create a connected data builder:
@@ -305,7 +325,7 @@ function composeTitle(
     removeId?: string,
     settings?: Immutable.Map<string, any> | any,
     regFields?: Immutable.Map<string, FieldInstance>
-): string;
+): string | null;
 ```
 
 **Parameters:**
@@ -323,7 +343,7 @@ Creates a reusable title builder function from settings.
 function createTitleBuilder(
     settings: Immutable.Map<string, any> | any,
     regFields: Immutable.Map<string, FieldInstance>
-): (refData: RefData, removeId?: string) => string;
+): (refData: RefData, removeId?: string) => string | null;
 ```
 
 ## Best Practices
@@ -398,6 +418,12 @@ The title composition is configured through settings with the key pattern: `${re
     ])
 }
 ```
+
+**Fallback Behavior**:
+
+- **Fields configured**: Uses field-based composition exclusively, no path fallback
+- **No fields configured**: Falls back to path-based composition
+- **No settings**: No title composition applied
 
 ### Field Formatters
 

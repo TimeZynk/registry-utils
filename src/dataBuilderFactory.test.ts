@@ -724,7 +724,7 @@ describe('dataBuilderFactory', () => {
             expect(refData?.get('title')).toBe('First Item');
         });
 
-        it('returns null when dynamic title composition results in separator-only title', () => {
+        it('returns empty string when dynamic title composition results in separator-only title', () => {
             const dynamicTitleSetting = Immutable.fromJS({
                 id: '553e2f1f3029e0478fc757f2/dynamic-title',
                 value: {
@@ -750,8 +750,8 @@ describe('dataBuilderFactory', () => {
                 dynamicTitleSetting
             );
             const refData = dataBuilder(item);
-            // Should fall back to original title when composition results in separator-only
-            expect(refData?.get('title')).toBe('Original Shift Title');
+            // Should return empty string when composition results in separator-only (matches original utility behavior)
+            expect(refData?.get('title')).toBe('');
         });
 
         it('handles registry-reference formatId by looking up titles from path', () => {

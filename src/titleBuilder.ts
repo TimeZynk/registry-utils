@@ -75,6 +75,7 @@ const createTitleBuilder = defaultMemoize(
 
 /**
  * Creates a path-based title builder (fallback method)
+ * Similar to the original utility's path-based approach
  */
 function createPathBasedTitleBuilder(separator: string): (refData: RefData, removeId?: string) => string | null {
     return (refData: RefData, removeId?: string): string | null => {
@@ -85,15 +86,6 @@ function createPathBasedTitleBuilder(separator: string): (refData: RefData, remo
         }
 
         parts = parts.map((d: any) => d.get('title'));
-
-        // If no path data, try to use the item's title from the original
-        if (parts.isEmpty()) {
-            const original = refData.get('original');
-            if (original && original.get('title')) {
-                const originalTitle = original.get('title');
-                return originalTitle;
-            }
-        }
 
         const result = parts.join(separator);
 
@@ -124,13 +116,14 @@ function createPathBasedTitleBuilder(separator: string): (refData: RefData, remo
 
 /**
  * Creates a field-based title builder (primary method)
+ * Enhanced version of the original utility with registry-reference support
  */
 function createFieldBasedTitleBuilder(
     fields: Immutable.List<any>,
     separator: string,
     regFields: Immutable.Map<string, FieldInstance>
-): (refData: RefData) => string | null {
-    return (refData: RefData): string | null => {
+): (refData: RefData) => string {
+    return (refData: RefData): string => {
         const parts =
             refData &&
             fields.map((field: any) => {
@@ -157,22 +150,25 @@ function createFieldBasedTitleBuilder(
                     return value ? String(value) : '';
                 }
 
+                // Handle standard formatId - return value directly (no formatter needed)
+                if (formatId === 'standard') {
+                    return value ? String(value) : '';
+                }
+
+                // Use formatter if available for other formatIds (similar to original utility)
                 if (formatId && regFields) {
-                    // Try to get formatter from regFields
+                    // Try to get formatter from regFields (similar to registryFields.getFormatter)
                     const fieldInstance = regFields.get(formatId);
-
-                    if (fieldInstance && fieldInstance.get && typeof fieldInstance.get === 'function') {
+                    if (fieldInstance && fieldInstance.get('formatter')) {
                         const formatter = fieldInstance.get('formatter');
-
-                        if (formatter && typeof formatter === 'function') {
-                            const formattedValue = formatter(value);
-                            return formattedValue;
+                        if (typeof formatter === 'function') {
+                            return formatter(value);
                         }
                     }
                 }
 
-                const result = value ? String(value) : '';
-                return result;
+                // Default fallback: return value as string
+                return value ? String(value) : '';
             });
 
         const finalResult = (parts && parts.join(separator)) || '';
@@ -182,20 +178,20 @@ function createFieldBasedTitleBuilder(
 
         // Check if the result is empty or consists only of separator characters
         if (!trimmedResult) {
-            return null;
+            return '';
         }
 
         // Check if the result consists only of separators and empty parts
         const splitParts = trimmedResult.split(separator);
         const hasNonEmptyParts = splitParts.some((part) => part.trim());
         if (!hasNonEmptyParts) {
-            return null;
+            return '';
         }
 
         // Additional check: if the result consists only of separator characters (like ", ,")
         const separatorOnlyRegex = new RegExp(`^[${separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]*$`);
         if (separatorOnlyRegex.test(trimmedResult)) {
-            return null;
+            return '';
         }
 
         return finalResult;
@@ -205,6 +201,7 @@ function createFieldBasedTitleBuilder(
 /**
  * Composes a title from reference data using configured settings
  * This is the main entry point for title composition
+ * Similar to the original titlesFromPath function
  */
 function composeTitle(
     data: RefData,
@@ -225,14 +222,16 @@ function composeTitle(
         titleBuilder = createTitleBuilder(settingsMap, regFields);
     }
 
-    // Use titleBuilder if available, otherwise fallback to path-based
+    // Use titleBuilder if available
     if (titleBuilder) {
         const result = titleBuilder(data, removeId);
+        // If titleBuilder returns a result (even empty string), use it
+        // Don't fall back to path-based composition when fields are configured
         return result;
     }
 
-    // Fallback to simple path-based title composition
-    // Try to extract separator from settings, fallback to ', '
+    // Only fallback to path-based composition when no titleBuilder is available
+    // This happens when no settings are provided or no regFields
     let separator = ', ';
     if (settingsMap) {
         const setting = extractTitleSetting(settingsMap);
