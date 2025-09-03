@@ -17,6 +17,8 @@ export function createPathBasedTitleBuilder(separator: string): PathBasedBuilder
 
         parts = parts.map((d: any) => d.get('title'));
 
-        return processSeparator(parts.toArray(), separator) || null;
+        // Filter out null/undefined/empty values before processing
+        const validParts = parts.filter((part) => part && part.trim());
+        return processSeparator(validParts.toArray(), separator) || null;
     };
 }

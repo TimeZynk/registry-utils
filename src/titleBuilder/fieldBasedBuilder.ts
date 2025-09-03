@@ -31,18 +31,18 @@ export function createFieldBasedTitleBuilder(
 
                     if (registryRef) {
                         const registryTitle = registryRef.get('title');
-                        if (registryTitle) {
+                        if (registryTitle && registryTitle.trim()) {
                             return registryTitle;
                         }
                     }
 
                     // If no title found in path, try to get from the field value directly
-                    return value ? String(value) : '';
+                    return value && String(value).trim() ? String(value) : null;
                 }
 
                 // Handle standard formatId - return value directly (no formatter needed)
                 if (formatId === 'standard') {
-                    return value ? String(value) : '';
+                    return value && String(value).trim() ? String(value) : null;
                 }
 
                 // Use formatter if available for other formatIds
@@ -52,7 +52,8 @@ export function createFieldBasedTitleBuilder(
                     if (fieldInstance && fieldInstance.get('formatter')) {
                         const formatter = fieldInstance.get('formatter');
                         if (typeof formatter === 'function') {
-                            return formatter(value);
+                            const result = formatter(value);
+                            return result && String(result).trim() ? result : null;
                         }
                     }
 
@@ -60,18 +61,20 @@ export function createFieldBasedTitleBuilder(
                     // Note: registry-reference is handled above, so this won't be called for that formatId
                     try {
                         const builtInFormatter = getFormatter(formatId);
-                        const result = builtInFormatter(value) || '';
-                        return result;
+                        const result = builtInFormatter(value);
+                        return result && String(result).trim() ? result : null;
                     } catch {
                         // Fallback to string conversion if formatter fails
-                        return value ? String(value) : '';
+                        return value && String(value).trim() ? String(value) : null;
                     }
                 }
 
-                // Default fallback: return value as string
-                return value ? String(value) : '';
+                // Default fallback: return value as string only if it has content
+                return value && String(value).trim() ? String(value) : null;
             });
 
-        return processSeparator(parts ? parts.toArray() : [], separator);
+        // Filter out null/undefined/empty values before processing
+        const validParts = parts ? parts.filter((part) => part !== null && part !== undefined) : Immutable.List();
+        return processSeparator(validParts.toArray(), separator);
     };
 }

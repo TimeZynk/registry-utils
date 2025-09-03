@@ -9,30 +9,10 @@ export function cleanSeparatorResult(result: string, separator: string): string 
         return '';
     }
 
-    // First, handle consecutive separators by replacing them with a single separator
-    // This handles cases like "SomeValue » » AnotherValue" -> "SomeValue » AnotherValue"
-    let normalizedResult = result;
-
-    // Replace consecutive separators with a single separator
-    // Handle multiple cases:
-    // 1. "SomeValue » » AnotherValue" -> "SomeValue » AnotherValue" (single space)
-    // 2. "SomeValue »  » AnotherValue" -> "SomeValue » AnotherValue" (multiple spaces)
-
-    // Use a regex approach that can handle both cases
-    const escapedSeparator = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-
-    // This regex matches separator + optional whitespace + separator
-    // It will catch both " » » " and " »  » " patterns
-    const consecutiveSeparators = new RegExp(`${escapedSeparator}\\s*${escapedSeparator}`, 'g');
-
-    // Replace consecutive separators with a single separator
-    // Continue replacing until no more consecutive separators exist
-    while (consecutiveSeparators.test(normalizedResult)) {
-        normalizedResult = normalizedResult.replace(consecutiveSeparators, separator);
-    }
-
-    // Split by separator and filter out empty/whitespace-only parts
-    const parts = normalizedResult.split(separator);
+    // Since we're now filtering out empty values at the source,
+    // this function is mainly for edge cases and final cleanup
+    // Split by separator and filter out any remaining empty/whitespace-only parts
+    const parts = result.split(separator);
     const nonEmptyParts = parts.map((part) => part.trim()).filter((part) => part.length > 0);
 
     // Join non-empty parts with the separator
@@ -46,8 +26,21 @@ export function cleanSeparatorResult(result: string, separator: string): string 
  * @returns true if the result consists only of separator characters
  */
 export function isSeparatorOnly(result: string, separator: string): boolean {
+    const trimmedResult = result.trim();
+
+    // Handle empty separator case first
+    if (!separator) {
+        return trimmedResult === '';
+    }
+
+    // Empty strings and whitespace-only strings are not separator-only
+    if (!trimmedResult) {
+        return false;
+    }
+
+    // Check if the result consists only of separator characters
     const separatorOnlyRegex = new RegExp(`^[${separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}]*$`);
-    return separatorOnlyRegex.test(result.trim());
+    return separatorOnlyRegex.test(trimmedResult);
 }
 
 /**
@@ -61,14 +54,9 @@ export function processSeparator(parts: (string | undefined | null)[], separator
         return '';
     }
 
-    // Filter out empty/undefined values before joining
-    const nonEmptyParts = parts.filter((part) => part && part.trim().length > 0);
-
-    if (nonEmptyParts.length === 0) {
-        return '';
-    }
-
-    const result = nonEmptyParts.join(separator);
+    // Since we're now filtering out empty values at the source,
+    // we can just join the parts and do final cleanup
+    const result = parts.join(separator);
 
     const cleanedResult = cleanSeparatorResult(result, separator);
 
