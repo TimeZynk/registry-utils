@@ -2,9 +2,9 @@
 import Immutable from 'immutable';
 import { defaultMemoize } from 'reselect';
 import { isNil, isString, isEmpty as lodashIsEmpty } from 'lodash-es';
-import { defaultRegisters } from './defaultRegisters.js';
+import { defaultRegisters } from './utils/defaultRegisters.js';
 import { cacheFactory } from './cacheFactory.js';
-import { composeTitle } from './titleBuilder.js';
+import { composeTitle } from './titleBuilder/index.js';
 import type {
     RefData,
     RefDataAccumulator,
@@ -362,10 +362,12 @@ function dataBuilderFactory(
         if (isShiftEntity) {
             // For shift items, try to compose title - composeTitle has fallback logic
             const composedTitle = composeTitle(data.asImmutable(), undefined, dynamicTitleSetting, regFields);
-            if (composedTitle) {
+
+            if (composedTitle !== null && composedTitle !== undefined) {
+                // If composeTitle returns a string (even empty), use it
                 data = data.set('title', composedTitle);
             } else {
-                // Fallback to original title if composition fails or returns null
+                // Only fallback to original title if composeTitle returns null/undefined
                 const originalTitle = item.get('title');
                 if (originalTitle) {
                     data = data.set('title', originalTitle);

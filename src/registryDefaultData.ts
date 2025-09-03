@@ -1,7 +1,4 @@
-// Don't change the import/export syntax. Needs to be working with nodejs.
-// Maybe on next LTS release we will be able to change this.
-
-import { defaultRegisters } from './defaultRegisters.js';
+import { defaultRegisters } from './utils/defaultRegisters.js';
 
 const ALLOWANCE_REG_ID = defaultRegisters.ALLOWANCE_REG_ID;
 const AVAIL_REG_ID = defaultRegisters.AVAIL_REG_ID;
