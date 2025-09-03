@@ -2,9 +2,9 @@
 import Immutable from 'immutable';
 import { defaultMemoize } from 'reselect';
 import { isNil, isString, isEmpty as lodashIsEmpty } from 'lodash-es';
-import { defaultRegisters } from './defaultRegisters.js';
+import { defaultRegisters } from './utils/defaultRegisters.js';
 import { cacheFactory } from './cacheFactory.js';
-import { composeTitle } from './titleBuilder.js';
+import { composeTitle } from './titleBuilder/index.js';
 import type {
     RefData,
     RefDataAccumulator,

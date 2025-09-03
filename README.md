@@ -9,6 +9,7 @@ A utility library for building reference data from registry structures in Timezy
 - **Data Builder Factory**: Creates functions that build reference data from registry items
 - **Field Reference Resolution**: Automatically resolves field references across registry structures
 - **Dynamic Title Composition**: Compose dynamic titles from multiple registry fields with custom separators
+- **Formatter Utility**: Built-in formatters for address, breaks, dates, and other complex field types
 - **Caching**: Built-in caching for performance optimization
 - **Memoization Support**: Export memoized builder factory for performance optimization
 
@@ -88,6 +89,41 @@ if (item.getIn?.(['relations', 'incoming-rfq-id'])) {
 - Maintain clear separation of concerns
 
 These methods are used for UI display purposes only and should not be expected to be processed in the `refData` object.
+
+## Formatter Utility
+
+The library includes a comprehensive formatter utility that handles complex field value formatting. This is particularly useful for dynamic title composition and other data transformation needs.
+
+### Available Formatters
+
+| Formatter ID | Description                                          | Example Input                                           | Example Output                 |
+| ------------ | ---------------------------------------------------- | ------------------------------------------------------- | ------------------------------ |
+| `address`    | Formats address objects with proper comma separation | `{address1: "Main St", city: "Stockholm", country: 46}` | `"Main St, Stockholm, Sweden"` |
+| `breaks`     | Formats time breaks as time ranges                   | `[{start: "10:00", end: "12:00"}]`                      | `"10:00-12:00"`                |
+| `start-end`  | Formats start/end date pairs                         | `["2025-01-21", "2025-01-22"]`                          | `"2025-01-21, 10:00"`          |
+| `boolean`    | Formats boolean values as Yes/No                     | `true`                                                  | `"Yes"`                        |
+| `standard`   | Basic string formatting (default)                    | `"  hello  "`                                           | `"hello"`                      |
+
+### Peer Dependencies for Formatters
+
+Some formatters require additional peer dependencies to be installed by the consuming application:
+
+```bash
+npm install dateformat-light tzdateutils
+```
+
+**Required for:**
+
+- `breaks` formatter (time formatting)
+- `start-end` formatter (date formatting)
+
+**Not required for:**
+
+- `address` formatter
+- `boolean` formatter
+- `standard` formatter
+
+If the peer dependencies are not installed, these formatters will fall back to basic string conversion.
 
 ### Configuration Structure
 
@@ -344,6 +380,40 @@ function createTitleBuilder(
     settings: Immutable.Map<string, any> | any,
     regFields: Immutable.Map<string, FieldInstance>
 ): (refData: RefData, removeId?: string) => string | null;
+```
+
+### getFormatter
+
+Gets a formatter function by ID for formatting complex field values.
+
+```typescript
+function getFormatter(id: string): FormatterFunction;
+```
+
+**Parameters:**
+
+- `id`: The formatter ID (e.g., 'address', 'breaks', 'start-end', 'boolean', 'standard')
+
+**Available Formatters:**
+
+- **`address`**: Formats address objects with proper comma separation
+- **`breaks`**: Formats time breaks as "HH:MM-HH:MM"
+- **`start-end`**: Formats start/end date pairs
+- **`boolean`**: Formats boolean values as "Yes"/"No"
+- **`standard`**: Basic string formatting (default)
+
+**Example:**
+
+```typescript
+import { getFormatter } from 'timezynk-registry-utils';
+
+const addressFormatter = getFormatter('address');
+const formattedAddress = addressFormatter({
+    address1: 'Main Street 123',
+    city: 'Stockholm',
+    country: 46,
+});
+// Result: "Main Street 123, Stockholm, Sweden"
 ```
 
 ## Best Practices

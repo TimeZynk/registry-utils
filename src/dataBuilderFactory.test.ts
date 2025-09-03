@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Immutable from 'immutable';
 import { stopCache } from './cacheFactory';
 import { dataBuilderFactory, DataBuilder } from './dataBuilderFactory';
-import { defaultRegisters } from './defaultRegisters';
+import { defaultRegisters } from './utils/defaultRegisters';
 
 describe('dataBuilderFactory', () => {
     afterEach(() => {
