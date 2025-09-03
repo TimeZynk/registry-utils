@@ -1,6 +1,6 @@
 import Immutable from 'immutable';
 import type { RefData } from '../types.js';
-import { isValidSeparatorResult } from './utils/separatorValidation.js';
+import { processSeparator } from './utils/processSeparator.js';
 
 type PathBasedBuilderFunction = (refData: RefData, removeId?: string) => string | null;
 /**
@@ -17,9 +17,6 @@ export function createPathBasedTitleBuilder(separator: string): PathBasedBuilder
 
         parts = parts.map((d: any) => d.get('title'));
 
-        const result = parts.join(separator);
-
-        // Use shared utility for separator validation
-        return isValidSeparatorResult(result, separator) ? result : null;
+        return processSeparator(parts.toArray(), separator) || null;
     };
 }

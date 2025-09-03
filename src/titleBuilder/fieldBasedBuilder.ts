@@ -1,7 +1,7 @@
 import Immutable from 'immutable';
 import type { RefData, FieldInstance } from '../types.js';
 import { getFormatter } from './getFormatter.js';
-import { isValidSeparatorResult } from './utils/separatorValidation.js';
+import { processSeparator } from './utils/processSeparator.js';
 
 type FieldBasedBuilderFunction = (refData: RefData) => string;
 /**
@@ -72,9 +72,6 @@ export function createFieldBasedTitleBuilder(
                 return value ? String(value) : '';
             });
 
-        const finalResult = (parts && parts.join(separator)) || '';
-
-        // Use shared utility for separator validation
-        return isValidSeparatorResult(finalResult, separator) ? finalResult : '';
+        return processSeparator(parts ? parts.toArray() : [], separator);
     };
 }
