@@ -6,11 +6,12 @@ A utility library for building reference data from registry structures in Timezy
 
 ## Features
 
--   **Data Builder Factory**: Creates functions that build reference data from registry items
--   **Field Reference Resolution**: Automatically resolves field references across registry structures
--   **Dynamic Title Composition**: Compose dynamic titles from multiple registry fields with custom separators
--   **Caching**: Built-in caching for performance optimization
--   **Memoization Support**: Export memoized builder factory for performance optimization
+- **Data Builder Factory**: Creates functions that build reference data from registry items
+- **Field Reference Resolution**: Automatically resolves field references across registry structures
+- **Dynamic Title Composition**: Compose dynamic titles from multiple registry fields with custom separators
+- **Formatter Utility**: Built-in formatters for address, breaks, dates, and other complex field types
+- **Caching**: Built-in caching for performance optimization
+- **Memoization Support**: Export memoized builder factory for performance optimization
 
 ## Installation
 
@@ -38,13 +39,23 @@ The library supports dynamic title composition that can combine multiple registr
 
 **Note**: Dynamic title composition is only applied to shift registry items (items that have a `booked-users` field). This ensures that time reports and other registry types preserve their original titles.
 
+### Enhanced Features
+
+This implementation is based on the original utility but includes several improvements:
+
+- **Registry Reference Support**: Automatically resolves `formatId: "registry-reference"` by looking up titles from the `path` property
+- **Separator-Only Detection**: Prevents malformed titles like `", , "` by returning empty string when composition results in separator-only strings
+- **Performance Optimization**: Uses memoization to avoid recreating title builders unnecessarily
+- **Graceful Fallbacks**: Handles missing registry references gracefully without breaking title composition
+- **Original Behavior Preservation**: Maintains the original utility's behavior where field-based composition takes precedence over path-based fallbacks
+
 ### Supported Title Composition Methods
 
 This library handles the following title composition scenarios:
 
 1. **Field-Based Composition**: Combines values from specific registry fields using a custom separator
-2. **Path-Based Composition**: Uses registry reference paths to build hierarchical titles
-3. **Separator-Only Detection**: Automatically falls back to original titles when composition results in separator-only strings
+2. **Path-Based Composition**: Uses registry reference paths to build hierarchical titles (fallback only when no fields configured)
+3. **Separator-Only Detection**: Returns empty string when composition results in separator-only strings (no fallback to path)
 
 ### Additional Title Composition Use Cases
 
@@ -72,12 +83,47 @@ if (item.getIn?.(['relations', 'incoming-rfq-id'])) {
 
 **Important**: These additional title composition methods are intentionally kept separate from this library to:
 
--   Prevent additional Redux store dependencies
--   Avoid increasing registry utility complexity
--   Keep UI-specific title logic in the main application
--   Maintain clear separation of concerns
+- Prevent additional Redux store dependencies
+- Avoid increasing registry utility complexity
+- Keep UI-specific title logic in the main application
+- Maintain clear separation of concerns
 
 These methods are used for UI display purposes only and should not be expected to be processed in the `refData` object.
+
+## Formatter Utility
+
+The library includes a comprehensive formatter utility that handles complex field value formatting. This is particularly useful for dynamic title composition and other data transformation needs.
+
+### Available Formatters
+
+| Formatter ID | Description                                          | Example Input                                           | Example Output                 |
+| ------------ | ---------------------------------------------------- | ------------------------------------------------------- | ------------------------------ |
+| `address`    | Formats address objects with proper comma separation | `{address1: "Main St", city: "Stockholm", country: 46}` | `"Main St, Stockholm, Sweden"` |
+| `breaks`     | Formats time breaks as time ranges                   | `[{start: "10:00", end: "12:00"}]`                      | `"10:00-12:00"`                |
+| `start-end`  | Formats start/end date pairs                         | `["2025-01-21", "2025-01-22"]`                          | `"2025-01-21, 10:00"`          |
+| `boolean`    | Formats boolean values as Yes/No                     | `true`                                                  | `"Yes"`                        |
+| `standard`   | Basic string formatting (default)                    | `"  hello  "`                                           | `"hello"`                      |
+
+### Peer Dependencies for Formatters
+
+Some formatters require additional peer dependencies to be installed by the consuming application:
+
+```bash
+npm install dateformat-light tzdateutils
+```
+
+**Required for:**
+
+- `breaks` formatter (time formatting)
+- `start-end` formatter (date formatting)
+
+**Not required for:**
+
+- `address` formatter
+- `boolean` formatter
+- `standard` formatter
+
+If the peer dependencies are not installed, these formatters will fall back to basic string conversion.
 
 ### Configuration Structure
 
@@ -87,20 +133,26 @@ The dynamic title settings follow this structure:
 {
     "id": "553e2f1f3029e0478fc757f2/dynamic-title", // registry-id/dynamic-title
     "value": {
-        "separator": ", ", // Custom separator between field values
+        "separator": " » ", // Custom separator between field values
         "fields": [
             {
-                "formatId": "standard", // Optional formatter ID
+                "formatId": "standard", // Standard field formatter
                 "id": "title-6894be7bca96a32dabf1fd96" // Field ID to include
             },
             {
-                "formatId": "standard",
-                "id": "6894be8a6d3f9a793f88a958"
+                "formatId": "registry-reference", // Registry reference formatter
+                "id": "6894be8a6d3f9a793f88a958" // Field ID that references another registry
             }
         ]
     }
 }
 ```
+
+#### Field Format Types
+
+- **`standard`**: Uses the field value directly or applies a custom formatter if defined
+- **`registry-reference`**: Looks up the title from the referenced registry item in the `path` property
+- **Custom formatters**: Can be defined in the registry fields using the `formatter` property
 
 ### Basic Title Composition
 
@@ -151,6 +203,29 @@ const refData = dataBuilder(
 // Result: refData.get('title') === "Value A - Value B"
 ```
 
+### Registry Reference Title Composition
+
+When a field in your dynamic title settings has `formatId: "registry-reference"`, the system will automatically look up the title from the referenced registry item in the `path` property:
+
+````typescript
+const dynamicTitleSetting = Immutable.fromJS({
+    id: `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`,
+    value: {
+        separator: ' » ',
+        fields: [
+            {
+                formatId: 'registry-reference',
+                id: '68b710c6bda6d25184246fd9', // Field that references another registry
+            },
+        ],
+    },
+});
+
+// This will compose the title using the referenced registry's title from the path
+// Result: "Referenced Registry Title" instead of just the registry ID
+
+**Note**: If the referenced registry item is not found in the `path`, the system falls back to using the raw field value (e.g., the registry ID) to ensure the title composition doesn't fail.
+
 ### Path-Based Title Composition (Fallback)
 
 When no specific fields are configured or when fields list is empty, the system falls back to path-based title composition:
@@ -166,7 +241,7 @@ const settings = Immutable.fromJS({
 
 // This will use the path data (registry references) or fall back to the item's title
 // Result: "Parent Registry Title | Child Registry Title"
-```
+````
 
 ### Manual Title Composition
 
@@ -186,6 +261,16 @@ const title = titleBuilder(refData);
 **Note**: `composeTitle` is the main entry point that handles both field-based and path-based title composition automatically based on your settings configuration.
 
 **Important**: In most cases, you should get the title directly from `refData.get('title')` rather than calling `composeTitle` manually. The `dataBuilderFactory` automatically applies title composition when building refData, so React components and other consumers should simply use the pre-computed title from the refData object.
+
+### Behavior When Field-Based Composition Fails
+
+When field-based composition is configured but fails (e.g., all fields are empty or result in separator-only strings):
+
+- **Returns empty string `''`** instead of falling back to path-based composition
+- **No fallback to original title** - the empty string is used as-is
+- **Maintains original utility behavior** where field-based composition takes precedence
+
+This ensures that when you configure specific fields for title composition, the system respects your configuration and doesn't unexpectedly fall back to path-based or original titles.
 
 ## Integration with Redux Store
 
@@ -251,12 +336,12 @@ function dataBuilderFactory(
 
 **Parameters:**
 
--   `regFields`: Registry field definitions
--   `regData`: Registry data instances
--   `users`: User data
--   `invoiceArticles`: Optional invoice articles data
--   `salaryArticles`: Optional salary articles data
--   `dynamicTitleSetting`: Optional dynamic title composition settings
+- `regFields`: Registry field definitions
+- `regData`: Registry data instances
+- `users`: User data
+- `invoiceArticles`: Optional invoice articles data
+- `salaryArticles`: Optional salary articles data
+- `dynamicTitleSetting`: Optional dynamic title composition settings
 
 ### memoizedDataBuilderFactory
 
@@ -276,15 +361,15 @@ function composeTitle(
     removeId?: string,
     settings?: Immutable.Map<string, any> | any,
     regFields?: Immutable.Map<string, FieldInstance>
-): string;
+): string | null;
 ```
 
 **Parameters:**
 
--   `data`: The reference data object
--   `removeId`: Optional registry ID to exclude from path-based composition
--   `settings`: Dynamic title composition settings
--   `regFields`: Registry field definitions for formatter support
+- `data`: The reference data object
+- `removeId`: Optional registry ID to exclude from path-based composition
+- `settings`: Dynamic title composition settings
+- `regFields`: Registry field definitions for formatter support
 
 ### createTitleBuilder
 
@@ -294,7 +379,41 @@ Creates a reusable title builder function from settings.
 function createTitleBuilder(
     settings: Immutable.Map<string, any> | any,
     regFields: Immutable.Map<string, FieldInstance>
-): (refData: RefData, removeId?: string) => string;
+): (refData: RefData, removeId?: string) => string | null;
+```
+
+### getFormatter
+
+Gets a formatter function by ID for formatting complex field values.
+
+```typescript
+function getFormatter(id: string): FormatterFunction;
+```
+
+**Parameters:**
+
+- `id`: The formatter ID (e.g., 'address', 'breaks', 'start-end', 'boolean', 'standard')
+
+**Available Formatters:**
+
+- **`address`**: Formats address objects with proper comma separation
+- **`breaks`**: Formats time breaks as "HH:MM-HH:MM"
+- **`start-end`**: Formats start/end date pairs
+- **`boolean`**: Formats boolean values as "Yes"/"No"
+- **`standard`**: Basic string formatting (default)
+
+**Example:**
+
+```typescript
+import { getFormatter } from 'timezynk-registry-utils';
+
+const addressFormatter = getFormatter('address');
+const formattedAddress = addressFormatter({
+    address1: 'Main Street 123',
+    city: 'Stockholm',
+    country: 46,
+});
+// Result: "Main Street 123, Stockholm, Sweden"
 ```
 
 ## Best Practices
@@ -350,9 +469,9 @@ The `path` property in `refData` contains a hierarchical trail of registry refer
 }
 ```
 
--   **`path`**: Contains registry references (items that reference other registry items)
--   **`title-{registry-id}`**: Created for each registry reference to store the referenced item's title
--   **Direct field values**: Appear at the root level for regular fields
+- **`path`**: Contains registry references (items that reference other registry items)
+- **`title-{registry-id}`**: Created for each registry reference to store the referenced item's title
+- **Direct field values**: Appear at the root level for regular fields
 
 ## Configuration
 
@@ -369,6 +488,12 @@ The title composition is configured through settings with the key pattern: `${re
     ])
 }
 ```
+
+**Fallback Behavior**:
+
+- **Fields configured**: Uses field-based composition exclusively, no path fallback
+- **No fields configured**: Falls back to path-based composition
+- **No settings**: No title composition applied
 
 ### Field Formatters
 
@@ -387,9 +512,9 @@ const fieldWithFormatter = Immutable.Map({
 
 See the test files for comprehensive examples of how to use the library:
 
--   `src/dataBuilderFactory.test.ts` - Core functionality tests
--   `src/defaultValue.test.ts` - Default value handling
--   `src/salary.test.ts` - Salary-specific functionality
+- `src/dataBuilderFactory.test.ts` - Core functionality tests
+- `src/defaultValue.test.ts` - Default value handling
+- `src/salary.test.ts` - Salary-specific functionality
 
 ## Migration from Legacy dataBuilder
 

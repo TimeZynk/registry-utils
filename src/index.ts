@@ -1,8 +1,8 @@
 import { cacheFactory } from './cacheFactory.js';
 import { memoizedDataBuilderFactory } from './dataBuilderFactory.js';
 import * as registryDefaultData from './registryDefaultData.js';
-import { defaultRegisters } from './defaultRegisters.js';
-import { composeTitle, createTitleBuilder } from './titleBuilder.js';
+import { defaultRegisters } from './utils/defaultRegisters.js';
+import { composeTitle, createTitleBuilder, getFormatter } from './titleBuilder/index.js';
 
 export {
     cacheFactory,
@@ -11,6 +11,7 @@ export {
     defaultRegisters,
     composeTitle,
     createTitleBuilder,
+    getFormatter,
 };
 
 export type {

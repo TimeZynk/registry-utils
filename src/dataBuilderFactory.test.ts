@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Immutable from 'immutable';
 import { stopCache } from './cacheFactory';
 import { dataBuilderFactory, DataBuilder } from './dataBuilderFactory';
-import { defaultRegisters } from './defaultRegisters';
+import { defaultRegisters } from './utils/defaultRegisters';
 
 describe('dataBuilderFactory', () => {
     afterEach(() => {
@@ -724,7 +724,7 @@ describe('dataBuilderFactory', () => {
             expect(refData?.get('title')).toBe('First Item');
         });
 
-        it('returns null when dynamic title composition results in separator-only title', () => {
+        it('returns empty string when dynamic title composition results in separator-only title', () => {
             const dynamicTitleSetting = Immutable.fromJS({
                 id: '553e2f1f3029e0478fc757f2/dynamic-title',
                 value: {
@@ -750,8 +750,115 @@ describe('dataBuilderFactory', () => {
                 dynamicTitleSetting
             );
             const refData = dataBuilder(item);
-            // Should fall back to original title when composition results in separator-only
-            expect(refData?.get('title')).toBe('Original Shift Title');
+            // Should return empty string when composition results in separator-only (matches original utility behavior)
+            expect(refData?.get('title')).toBe('');
+        });
+
+        it('handles registry-reference formatId by looking up titles from path', () => {
+            const dynamicTitleSetting = Immutable.fromJS({
+                id: '553e2f1f3029e0478fc757f2/dynamic-title',
+                value: {
+                    separator: ' » ',
+                    fields: [
+                        {
+                            formatId: 'registry-reference',
+                            id: '68b710c6bda6d25184246fd9',
+                        },
+                    ],
+                },
+            });
+
+            const regFields = Immutable.Map({
+                '68b710c6bda6d25184246fd9': Immutable.Map({
+                    'field-id': 'registry-ref',
+                    id: '68b710c6bda6d25184246fd9',
+                    'field-type': 'registry-reference',
+                    weight: 1,
+                }),
+            });
+
+            // Create registry data for the referenced item
+            const registryData = Immutable.Map({
+                'ref-item-1': Immutable.Map({
+                    id: 'ref-item-1',
+                    'registry-id': 'REF_REGISTRY',
+                    title: 'Referenced Registry Title',
+                }),
+            });
+
+            // Shift item with registry reference
+            const shiftItem = Immutable.Map({
+                id: 'shift-item',
+                'registry-id': 'SHIFTS',
+                title: 'Original Shift Title',
+                'booked-users': Immutable.List(['user1']),
+                values: Immutable.Map({
+                    '68b710c6bda6d25184246fd9': 'ref-item-1',
+                }),
+            });
+
+            const dataBuilder = dataBuilderFactory(
+                regFields,
+                registryData,
+                Immutable.Map(),
+                undefined,
+                undefined,
+                dynamicTitleSetting
+            );
+
+            const refData = dataBuilder(shiftItem);
+
+            // Should use the title from the referenced registry item in the path
+            expect(refData?.get('title')).toBe('Referenced Registry Title');
+        });
+
+        it('falls back to raw value when registry-reference is not found in path', () => {
+            const dynamicTitleSetting = Immutable.fromJS({
+                id: '553e2f1f3029e0478fc757f2/dynamic-title',
+                value: {
+                    separator: ' » ',
+                    fields: [
+                        {
+                            formatId: 'registry-reference',
+                            id: '68b710c6bda6d25184246fd9',
+                        },
+                    ],
+                },
+            });
+
+            const regFields = Immutable.Map({
+                '68b710c6bda6d25184246fd9': Immutable.Map({
+                    'field-id': 'registry-ref',
+                    id: '68b710c6bda6d25184246fd9',
+                    'field-type': 'registry-reference',
+                    weight: 1,
+                }),
+            });
+
+            // Shift item with registry reference that doesn't exist in path
+            const shiftItem = Immutable.Map({
+                id: 'shift-item',
+                'registry-id': 'SHIFTS',
+                title: 'Original Shift Title',
+                'booked-users': Immutable.List(['user1']),
+                values: Immutable.Map({
+                    '68b710c6bda6d25184246fd9': 'non-existent-ref',
+                }),
+            });
+
+            const dataBuilder = dataBuilderFactory(
+                regFields,
+                Immutable.Map(), // Empty registry data - no path will be created
+                Immutable.Map(),
+                undefined,
+                undefined,
+                dynamicTitleSetting
+            );
+
+            const refData = dataBuilder(shiftItem);
+
+            // Should fall back to the raw value when registry reference not found in path
+            expect(refData?.get('title')).toBe('non-existent-ref');
         });
     });
 });
