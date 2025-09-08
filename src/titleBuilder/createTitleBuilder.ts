@@ -4,6 +4,7 @@ import type { FieldInstance, RefData } from '../types.js';
 import { extractTitleSetting } from './extractTitleSetting.js';
 import { createPathBasedTitleBuilder } from './pathBasedBuilder.js';
 import { createFieldBasedTitleBuilder } from './fieldBasedBuilder.js';
+import { DEFAULT_DYNAMIC_TITLE_SEPARATOR } from '../utils/constants.js';
 
 type TitleBuilderFunction = (refData: RefData, removeId?: string) => string | null;
 /**
@@ -20,7 +21,7 @@ export const createTitleBuilder = defaultMemoize(
         // Extract settings using helper function
         const setting = extractTitleSetting(settingsMap);
 
-        const separator = setting.get('separator') || ', ';
+        const separator = setting.get('separator') || DEFAULT_DYNAMIC_TITLE_SEPARATOR;
         const fields = setting.get('fields') || Immutable.List();
 
         // If no fields configured - builds title from registry hierarchy with path-based composition

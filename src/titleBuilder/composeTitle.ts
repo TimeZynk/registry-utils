@@ -3,6 +3,7 @@ import type { RefData, FieldInstance } from '../types.js';
 import { extractTitleSetting } from './extractTitleSetting.js';
 import { createPathBasedTitleBuilder } from './pathBasedBuilder.js';
 import { createTitleBuilder } from './createTitleBuilder.js';
+import { DEFAULT_DYNAMIC_TITLE_SEPARATOR } from '../utils/constants.js';
 
 let titleBuilder: ((refData: RefData, removeId?: string) => string | null) | null = null;
 let lastSettings: Immutable.Map<string, any> | null = null;
@@ -41,11 +42,11 @@ export function composeTitle(
 
     // Only fallback to path-based composition when no titleBuilder is available
     // This happens when no settings are provided or no regFields
-    let separator = ', ';
+    let separator = DEFAULT_DYNAMIC_TITLE_SEPARATOR;
     if (settingsMap) {
         const setting = extractTitleSetting(settingsMap);
         if (Immutable.Map.isMap(setting)) {
-            separator = setting.get('separator') || ', ';
+            separator = setting.get('separator') || DEFAULT_DYNAMIC_TITLE_SEPARATOR;
         }
     }
 
