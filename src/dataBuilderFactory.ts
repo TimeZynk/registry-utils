@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import Immutable from 'immutable';
-import { defaultMemoize } from 'reselect';
+import { lruMemoize } from 'reselect';
 import { isNil, isString, isEmpty as lodashIsEmpty } from 'lodash-es';
 import { defaultRegisters } from './utils/defaultRegisters.js';
 import { cacheFactory } from './cacheFactory.js';
@@ -392,6 +392,6 @@ function dataBuilderFactory(
     };
 }
 
-const memoizedDataBuilderFactory = defaultMemoize(dataBuilderFactory);
+const memoizedDataBuilderFactory = lruMemoize(dataBuilderFactory);
 
 export { dataBuilderFactory, memoizedDataBuilderFactory, DataBuilder };

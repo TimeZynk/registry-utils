@@ -6,3 +6,5 @@ node_modules
 /lib
 /coverage
 CLAUDE.md
+.claude
+.ada

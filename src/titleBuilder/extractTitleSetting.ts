@@ -1,4 +1,4 @@
-import { defaultMemoize } from 'reselect';
+import { lruMemoize } from 'reselect';
 import { defaultRegisters } from '../utils/defaultRegisters.js';
 
 export const SHIFT_TITLE_SETTING_ID = `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`;
@@ -6,7 +6,7 @@ export const SHIFT_TITLE_SETTING_ID = `${defaultRegisters.SHIFTS_REG_ID}/dynamic
 /**
  * Extracts title settings from the settings map
  */
-export const extractTitleSetting = defaultMemoize((settingsMap: any): any => {
+export const extractTitleSetting = lruMemoize((settingsMap: any): any => {
     let setting = settingsMap.get(SHIFT_TITLE_SETTING_ID);
 
     if (!setting) {
