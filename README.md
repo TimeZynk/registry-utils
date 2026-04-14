@@ -277,7 +277,7 @@ This ensures that when you configure specific fields for title composition, the 
 For applications using Redux, you can create a connected data builder:
 
 ```typescript
-import { defaultMemoize } from 'reselect';
+import { lruMemoize } from 'reselect';
 import { dataBuilderFactory } from 'timezynk-registry-utils';
 import store from 'state/store';
 import { getAllRegistryFields, getRegistryData, getAllUsers, getCompanySetting } from 'state/selectors';
@@ -286,7 +286,7 @@ import { defaultRegisters } from 'timezynk-registry-utils';
 const SHIFT_TITLE_SETTING_ID = `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`;
 
 // Memoized builder factory
-const getDataBuilder = defaultMemoize(dataBuilderFactory);
+const getDataBuilder = lruMemoize(dataBuilderFactory);
 
 interface RefDataBuilderOptions {
     dynamicTitle?: boolean;
@@ -348,7 +348,7 @@ function dataBuilderFactory(
 A memoized version of `dataBuilderFactory` for performance optimization.
 
 ```typescript
-const memoizedDataBuilderFactory = defaultMemoize(dataBuilderFactory);
+const memoizedDataBuilderFactory = lruMemoize(dataBuilderFactory);
 ```
 
 ### composeTitle

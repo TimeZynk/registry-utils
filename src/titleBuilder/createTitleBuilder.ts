@@ -1,4 +1,4 @@
-import { defaultMemoize } from 'reselect';
+import { lruMemoize } from 'reselect';
 import Immutable from 'immutable';
 import type { FieldInstance, RefData } from '../types.js';
 import { extractTitleSetting } from './extractTitleSetting.js';
@@ -10,7 +10,7 @@ type TitleBuilderFunction = (refData: RefData, removeId?: string) => string | nu
 /**
  * Creates a title composition function based on settings
  */
-export const createTitleBuilder = defaultMemoize(
+export const createTitleBuilder = lruMemoize(
     (
         settings: Immutable.Map<string, any> | any,
         regFields: Immutable.Map<string, FieldInstance>
