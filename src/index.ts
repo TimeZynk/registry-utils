@@ -14,6 +14,8 @@ export {
     getFormatter,
 };
 
+export * as fieldValues from './fieldValues/index.js';
+
 export type {
     FieldInstance,
     RefData,
