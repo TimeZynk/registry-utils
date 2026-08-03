@@ -516,6 +516,8 @@ See the test files for comprehensive examples of how to use the library:
 - `src/defaultValue.test.ts` - Default value handling
 - `src/salary.test.ts` - Salary-specific functionality
 
+For release setup and npm authentication troubleshooting, see [Publishing npm packages from GitHub Actions with OIDC](docs/npm-trusted-publishing.md).
+
 ## Migration from Legacy dataBuilder
 
 If you're migrating from the legacy `dataBuilder` pattern:
