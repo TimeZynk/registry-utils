@@ -15,8 +15,72 @@ import type {
     DataBuilder,
 } from './types.js';
 
-const cache = cacheFactory('fieldData');
+// Bumped well past cacheFactory's 1024 default: a single month's shift view can hold more
+// distinct items (shifts + referenced registry-data rows + users, see generation-tagging below)
+// than that on its own, before even accounting for the older generations' entries that stick
+// around, now-unreachable, until they age out (see the "generation" comment further down for why
+// stale entries are no longer actively flushed).
+const FIELD_DATA_CACHE_MAXSIZE = 8192;
+
+const cache = cacheFactory('fieldData', undefined, FIELD_DATA_CACHE_MAXSIZE);
 let visited: Record<string, boolean> = {};
+
+// dataBuilderFactory used to call cache.flush() on every construction (see git history) because
+// the cache was keyed by raw item/reference id alone, with nothing distinguishing which
+// "generation" of regFields/regData/users/articles/dynamicTitleSetting produced a given entry —
+// so a fresh construction (which happens on every registry-fields/registry-data/users change, i.e.
+// very often) had to nuke everything to avoid serving refData built from stale inputs. That made
+// the cache structurally unable to stay warm: every one of Schedule's many concurrent
+// dataBuilderFactory callers (see makeDataBuilder in @timezynk/tzredux, tzcontrol's own
+// ScheduleRow/ScheduleCol/utils.tsx builder, etc.) flushed out whatever the others had just built,
+// on every render.
+//
+// Fix: tag every cache key with a generation derived from the *reference identity* of this
+// construction's six inputs, via makeVersionTagger below. Two constructions from the same
+// underlying data (same references — Immutable structures only get new references when they
+// actually change, matching the memoization convention already used throughout this codebase's
+// reselect selectors) resolve to the same generation and therefore share cache entries, even
+// across different call sites. A construction from *different* data gets a different generation,
+// so its keys never collide with the old generation's — old entries simply become unreachable
+// (never read again) rather than needing an active flush, and age out via the existing
+// TTL/LRU eviction in cacheFactory like any other entry.
+function makeVersionTagger(): (value: object | null | undefined) => string {
+    const tags = new WeakMap<object, string>();
+    let nextId = 1;
+
+    return (value) => {
+        if (value === null || value === undefined) {
+            return 'none';
+        }
+        let tag = tags.get(value);
+        if (!tag) {
+            tag = String(nextId);
+            nextId += 1;
+            tags.set(value, tag);
+        }
+        return tag;
+    };
+}
+
+const tagRegFields = makeVersionTagger();
+const tagRegData = makeVersionTagger();
+const tagUsers = makeVersionTagger();
+const tagInvoiceArticles = makeVersionTagger();
+const tagSalaryArticles = makeVersionTagger();
+const tagDynamicTitleSetting = makeVersionTagger();
+
+// Separate 7th tagger for the *item* passed into the returned DataBuilder closure per call — not
+// one of the six construction-time inputs above. `id + '/' + valid-from` alone is not a safe cache
+// key for it: unlike regData/users (which are part of the generation above, so a stale sub-entry
+// can't exist without the whole generation also having moved on — Immutable's persistent
+// structures guarantee any nested change propagates a new top-level reference), an item's *content*
+// can change (e.g. a shift edited to a different custom-field value) without id/valid-from changing
+// and without regFields/regData/users/articles/dynamicTitleSetting changing either — makeDataBuilder
+// in @timezynk/tzredux only reconstructs the builder on registry-fields/registry-data/users/
+// dynamic-title-setting changes, not on the shifts collection changing. Tagging the item reference
+// itself closes that gap: an edited item is always a new Immutable reference (Immutable.set() only
+// preserves the reference when the value is unchanged), so it always gets a new cache key.
+const tagItem = makeVersionTagger();
 
 function byPriority(value: unknown): number {
     const fi = value as FieldInstance;
@@ -136,12 +200,18 @@ function dataBuilderFactory(
     dynamicTitleSetting?: Immutable.Map<string, any>
 ): DataBuilder {
     const fieldInstances = regFields ? regFields.sortBy(byPriority) : Immutable.Map<string, FieldInstance>();
-    if (cache && cache.flush) {
-        cache.flush();
-    }
+    const generation = [
+        tagRegFields(regFields),
+        tagRegData(regData),
+        tagUsers(users),
+        tagInvoiceArticles(invoiceArticles),
+        tagSalaryArticles(salaryArticles),
+        tagDynamicTitleSetting(dynamicTitleSetting),
+    ].join(':');
 
     function mergeUserValues(acc: RefDataAccumulator, id: string): RefDataAccumulator {
-        let referencedValues = cache.get(id);
+        const cacheKey = generation + ':' + id;
+        let referencedValues = cache.get(cacheKey);
 
         if (users && !referencedValues && !visited[id]) {
             visited[id] = true;
@@ -156,7 +226,7 @@ function dataBuilderFactory(
                     ]),
                 }).asMutable();
                 referencedValues = mergeValues(referencedValues, d);
-                cache.set(id, referencedValues.asImmutable());
+                cache.set(cacheKey, referencedValues.asImmutable());
             }
             delete visited[id];
         }
@@ -165,7 +235,8 @@ function dataBuilderFactory(
     }
 
     function mergeRegistryValues(acc: RefDataAccumulator, id: string): RefDataAccumulator {
-        let referencedValues = cache.get(id);
+        const cacheKey = generation + ':' + id;
+        let referencedValues = cache.get(cacheKey);
 
         if (!referencedValues && !visited[id]) {
             visited[id] = true;
@@ -184,7 +255,7 @@ function dataBuilderFactory(
                 referencedValues = referencedValues.set(titleKey, d.get('title'));
 
                 referencedValues = mergeValues(referencedValues, d);
-                cache.set(id, referencedValues.asImmutable());
+                cache.set(cacheKey, referencedValues.asImmutable());
             }
             delete visited[id];
         }
@@ -332,7 +403,7 @@ function dataBuilderFactory(
         }
         const id = item.get('id');
         const validFrom = item.get('valid-from');
-        const cacheKey = id && id + '/' + validFrom;
+        const cacheKey = id && generation + ':' + tagItem(item) + ':' + id + '/' + validFrom;
         const refData = !notCahced && cacheKey && cache.get(cacheKey);
 
         if (refData) {

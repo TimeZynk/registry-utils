@@ -861,4 +861,108 @@ describe('dataBuilderFactory', () => {
             expect(refData?.get('title')).toBe('non-existent-ref');
         });
     });
+
+    // Regression coverage for the cache.flush()-on-every-construction removal: dataBuilderFactory
+    // used to wipe the whole shared 'fieldData' cache on every construction, specifically to avoid
+    // serving refData built from stale regFields/regData/users/articles/dynamicTitleSetting. That's
+    // now done by tagging cache keys with a "generation" derived from those six inputs' reference
+    // identity instead, so entries only collide when they're actually built from the same data.
+    describe('caching across constructions (generation tagging)', () => {
+        const regFields = Immutable.Map({
+            CUSTOMER_REF: Immutable.Map({
+                id: 'CUSTOMER_REF',
+                'field-id': 'registry-CUSTOMERS',
+                'field-type': 'registry-reference',
+                'field-section': 'registers',
+            }),
+        });
+
+        function makeRegData(customerTitle: string) {
+            return Immutable.Map({
+                CUSTOMER_1: Immutable.Map({
+                    id: 'CUSTOMER_1',
+                    title: customerTitle,
+                    'registry-id': 'CUSTOMERS',
+                    values: Immutable.Map(),
+                }),
+            });
+        }
+
+        it('shares cache entries across two separate constructions built from the same regFields/regData/users references', () => {
+            const regData = makeRegData('Customer A');
+            const emptyUsers = Immutable.Map<string, Immutable.Map<string, any>>();
+            const item = Immutable.Map({
+                id: 'shared-item-1',
+                'registry-id': 'PROJECTS',
+                values: Immutable.Map({ CUSTOMER_REF: 'CUSTOMER_1' }),
+            });
+
+            // Two independent constructions from the identical (reference-equal) inputs — mirrors
+            // e.g. @timezynk/tzredux's makeDataBuilder and a second, differently-memoized caller
+            // both building from the same underlying redux collections.
+            const builderA = dataBuilderFactory(regFields, regData, emptyUsers);
+            const builderB = dataBuilderFactory(regFields, regData, emptyUsers);
+
+            const refDataA = builderA(item);
+            const refDataB = builderB(item);
+
+            // Reference-equal, not just value-equal: proves builderB served a cached entry rather
+            // than rebuilding from scratch.
+            expect(refDataB).toBe(refDataA);
+        });
+
+        it('does not serve a cached entry across constructions built from different regData', () => {
+            const emptyUsers = Immutable.Map<string, Immutable.Map<string, any>>();
+            const item = Immutable.Map({
+                id: 'shared-item-2',
+                'registry-id': 'PROJECTS',
+                values: Immutable.Map({ CUSTOMER_REF: 'CUSTOMER_1' }),
+            });
+
+            const builderA = dataBuilderFactory(regFields, makeRegData('Customer A'), emptyUsers);
+            const builderB = dataBuilderFactory(regFields, makeRegData('Customer B'), emptyUsers);
+
+            const refDataA = builderA(item);
+            const refDataB = builderB(item);
+
+            expect(refDataB).not.toBe(refDataA);
+            expect(refDataA?.getIn(['title-CUSTOMERS'])).toBe('Customer A');
+            expect(refDataB?.getIn(['title-CUSTOMERS'])).toBe('Customer B');
+        });
+
+        it('does not serve stale refData for an edited item with the same id (and no valid-from) under the same generation', () => {
+            const regData = makeRegData('Customer A');
+            const emptyUsers = Immutable.Map<string, Immutable.Map<string, any>>();
+            const builder = dataBuilderFactory(regFields, regData, emptyUsers);
+
+            const original = Immutable.Map({
+                id: 'edited-item',
+                'registry-id': 'PROJECTS',
+                values: Immutable.Map({ CUSTOMER_REF: 'CUSTOMER_1' }),
+            });
+            const edited = original.setIn(['values', 'CUSTOMER_REF'], null);
+
+            const refDataBefore = builder(original);
+            const refDataAfter = builder(edited);
+
+            expect(refDataBefore?.getIn(['title-CUSTOMERS'])).toBe('Customer A');
+            expect(refDataAfter?.getIn(['title-CUSTOMERS'])).toBeUndefined();
+        });
+
+        it('a builder still serves its own cached entry for the exact same item reference', () => {
+            const regData = makeRegData('Customer A');
+            const emptyUsers = Immutable.Map<string, Immutable.Map<string, any>>();
+            const builder = dataBuilderFactory(regFields, regData, emptyUsers);
+            const item = Immutable.Map({
+                id: 'same-ref-item',
+                'registry-id': 'PROJECTS',
+                values: Immutable.Map({ CUSTOMER_REF: 'CUSTOMER_1' }),
+            });
+
+            const first = builder(item);
+            const second = builder(item);
+
+            expect(second).toBe(first);
+        });
+    });
 });
