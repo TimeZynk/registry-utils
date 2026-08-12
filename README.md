@@ -10,7 +10,7 @@ A utility library for building reference data from registry structures in Timezy
 - **Field Reference Resolution**: Automatically resolves field references across registry structures
 - **Dynamic Title Composition**: Compose dynamic titles from multiple registry fields with custom separators
 - **Formatter Utility**: Built-in formatters for address, breaks, dates, and other complex field types
-- **Caching**: Built-in caching for performance optimization
+- **Caching**: Built-in caching for performance optimization — see [Caching](docs/caching.md) for how cache keys are generated and what callers need to do to actually benefit from it
 - **Memoization Support**: Export memoized builder factory for performance optimization
 
 ## Installation
@@ -517,6 +517,8 @@ See the test files for comprehensive examples of how to use the library:
 - `src/salary.test.ts` - Salary-specific functionality
 
 For release setup and npm authentication troubleshooting, see [Publishing npm packages from GitHub Actions with OIDC](docs/npm-trusted-publishing.md).
+
+For how the `dataBuilderFactory` cache is keyed, evicted, and what callers need to do to benefit from it, see [Caching](docs/caching.md).
 
 ## Migration from Legacy dataBuilder
 

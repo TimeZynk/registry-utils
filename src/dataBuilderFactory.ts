@@ -15,35 +15,25 @@ import type {
     DataBuilder,
 } from './types.js';
 
-// Bumped well past cacheFactory's 1024 default: a single month's shift view can hold more
-// distinct items (shifts + referenced registry-data rows + users, see generation-tagging below)
-// than that on its own, before even accounting for the older generations' entries that stick
-// around, now-unreachable, until they age out (see the "generation" comment further down for why
-// stale entries are no longer actively flushed).
+// A single month's shift view can hold more distinct cache entries (shifts + referenced
+// registry-data rows + users, across possibly several generations — see below) than
+// cacheFactory's 1024 default. See docs/caching.md for the full sizing rationale.
 const FIELD_DATA_CACHE_MAXSIZE = 8192;
 
 const cache = cacheFactory('fieldData', undefined, FIELD_DATA_CACHE_MAXSIZE);
 let visited: Record<string, boolean> = {};
 
-// dataBuilderFactory used to call cache.flush() on every construction (see git history) because
-// the cache was keyed by raw item/reference id alone, with nothing distinguishing which
-// "generation" of regFields/regData/users/articles/dynamicTitleSetting produced a given entry —
-// so a fresh construction (which happens on every registry-fields/registry-data/users change, i.e.
-// very often) had to nuke everything to avoid serving refData built from stale inputs. That made
-// the cache structurally unable to stay warm: every one of Schedule's many concurrent
-// dataBuilderFactory callers (see makeDataBuilder in @timezynk/tzredux, tzcontrol's own
-// ScheduleRow/ScheduleCol/utils.tsx builder, etc.) flushed out whatever the others had just built,
-// on every render.
-//
-// Fix: tag every cache key with a generation derived from the *reference identity* of this
-// construction's six inputs, via makeVersionTagger below. Two constructions from the same
+// Every cache key is prefixed with a "generation" derived from the *reference identity* of this
+// construction's six inputs, via makeVersionTagger below. Two constructions built from the same
 // underlying data (same references — Immutable structures only get new references when they
 // actually change, matching the memoization convention already used throughout this codebase's
-// reselect selectors) resolve to the same generation and therefore share cache entries, even
-// across different call sites. A construction from *different* data gets a different generation,
-// so its keys never collide with the old generation's — old entries simply become unreachable
-// (never read again) rather than needing an active flush, and age out via the existing
-// TTL/LRU eviction in cacheFactory like any other entry.
+// reselect selectors) resolve to the same generation and share cache entries, even across
+// different call sites. A construction from *different* data gets a different generation, so its
+// keys never collide with another generation's — entries from an abandoned generation simply
+// become unreachable and age out via cacheFactory's normal TTL/LRU eviction.
+//
+// See docs/caching.md for the full design rationale and what callers need to do to actually
+// benefit from this (short version: pass stable, reference-equal Immutable structures).
 function makeVersionTagger(): (value: object | null | undefined) => string {
     const tags = new WeakMap<object, string>();
     let nextId = 1;
@@ -70,16 +60,13 @@ const tagSalaryArticles = makeVersionTagger();
 const tagDynamicTitleSetting = makeVersionTagger();
 
 // Separate 7th tagger for the *item* passed into the returned DataBuilder closure per call — not
-// one of the six construction-time inputs above. `id + '/' + valid-from` alone is not a safe cache
-// key for it: unlike regData/users (which are part of the generation above, so a stale sub-entry
-// can't exist without the whole generation also having moved on — Immutable's persistent
-// structures guarantee any nested change propagates a new top-level reference), an item's *content*
-// can change (e.g. a shift edited to a different custom-field value) without id/valid-from changing
-// and without regFields/regData/users/articles/dynamicTitleSetting changing either — makeDataBuilder
-// in @timezynk/tzredux only reconstructs the builder on registry-fields/registry-data/users/
-// dynamic-title-setting changes, not on the shifts collection changing. Tagging the item reference
-// itself closes that gap: an edited item is always a new Immutable reference (Immutable.set() only
-// preserves the reference when the value is unchanged), so it always gets a new cache key.
+// one of the six construction-time inputs above, and needed in addition to them: `id + '/' +
+// valid-from` alone isn't a safe cache key, since an item's *content* can change (e.g. a shift
+// edited to a different custom-field value) without its id/valid-from changing and without the
+// six construction inputs changing either (callers typically only reconstruct the builder on
+// registry-fields/registry-data/users/dynamic-title-setting changes, not on every item edit).
+// Tagging the item reference itself closes that gap: an edited item is always a new Immutable
+// reference, so it always gets a new cache key.
 const tagItem = makeVersionTagger();
 
 function byPriority(value: unknown): number {
