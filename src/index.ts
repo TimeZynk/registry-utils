@@ -2,7 +2,6 @@ import { cacheFactory } from './cacheFactory.js';
 import { memoizedDataBuilderFactory } from './dataBuilderFactory.js';
 import * as registryDefaultData from './registryDefaultData.js';
 import { defaultRegisters } from './utils/defaultRegisters.js';
-import { registryRestPath } from './utils/registryRestPath.js';
 import { composeTitle, createTitleBuilder, getFormatter } from './titleBuilder/index.js';
 
 export {
@@ -10,7 +9,6 @@ export {
     memoizedDataBuilderFactory as dataBuilderFactory,
     registryDefaultData,
     defaultRegisters,
-    registryRestPath,
     composeTitle,
     createTitleBuilder,
     getFormatter,
