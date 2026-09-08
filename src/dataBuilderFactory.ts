@@ -414,15 +414,23 @@ function dataBuilderFactory(
 
         data = data.set('original', item);
 
-        // Apply title composition - only for shift registry items
-        const isShiftEntity = Boolean(bookedUsers);
+        // Apply title composition for shift-like items: shifts carry `booked-users`, and
+        // timereports/inquiries carry `shift-id`/`user-id` plus a copy of the shift's
+        // `values` (see tzcontrol's reportFromShift), so they compose the same dynamic
+        // title from the same field set. Registry-data rows (Customers, Projects, etc.)
+        // carry none of these three, so they're unaffected and keep their authored title.
+        const isShiftEntity = Boolean(bookedUsers || item.get('shift-id') || userId);
 
         if (isShiftEntity) {
-            // For shift items, try to compose title - composeTitle has fallback logic
+            // For shift-like items, try to compose title - composeTitle has fallback logic
             const composedTitle = composeTitle(data.asImmutable(), undefined, dynamicTitleSetting, regFields);
 
             if (composedTitle !== null && composedTitle !== undefined) {
-                // If composeTitle returns a string (even empty), use it
+                // If composeTitle returns a string (even empty), use it. None of the
+                // entities reached by isShiftEntity carry an authored `title` of their
+                // own to protect: ShiftRecord/TimeReportRecord/InquiryRecord have no
+                // `title` prop (tzcontrol's reportFromShift never copies one either), so
+                // there's nothing here for an empty composition to overwrite.
                 data = data.set('title', composedTitle);
             } else {
                 // Only fallback to original title if composeTitle returns null/undefined

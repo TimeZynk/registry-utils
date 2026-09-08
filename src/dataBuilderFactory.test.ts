@@ -601,7 +601,7 @@ describe('dataBuilderFactory', () => {
             expect(refData?.get('title')).toBe('Boobatea, 19-20, BT');
         });
 
-        it('only applies dynamic title composition to shift items with booked-users', () => {
+        it('only applies dynamic title composition to items with booked-users/shift-id/user-id', () => {
             const dynamicTitleSetting = Immutable.fromJS({
                 id: `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`,
                 value: {
@@ -664,6 +664,71 @@ describe('dataBuilderFactory', () => {
             // Test time report item - should preserve original title
             const reportRefData = dataBuilder(timeReportItem);
             expect(reportRefData?.get('title')).toBe('Original Report Title');
+        });
+
+        it('composes a dynamic title for a timereport-shaped item (shift-id/user-id, no booked-users)', () => {
+            // Shaped like tzcontrol's reportFromShift: a copy of the shift's `values`,
+            // 'shift-id'/'user-id' set, no 'booked-users', and no authored 'title' - a
+            // TimeReportRecord has no title prop, so reportFromShift never copies one.
+            const dynamicTitleSetting = Immutable.fromJS({
+                id: `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`,
+                value: {
+                    separator: ', ',
+                    fields: [{ id: 'FIELD_A' }, { id: 'FIELD_B' }],
+                },
+            });
+            const regFields = Immutable.Map({
+                FIELD_A: Immutable.Map({ 'field-id': 'field-a', id: 'FIELD_A', 'field-type': 'string', weight: 1 }),
+                FIELD_B: Immutable.Map({ 'field-id': 'field-b', id: 'FIELD_B', 'field-type': 'string', weight: 2 }),
+            });
+            const timeReportItem = Immutable.Map({
+                id: 'report-item',
+                'registry-id': 'REPORTS',
+                'shift-id': 'shift-1',
+                'user-id': 'user-1',
+                values: Immutable.Map({ FIELD_A: 'Value A', FIELD_B: 'Value B' }),
+            });
+            const dataBuilder = dataBuilderFactory(
+                regFields,
+                Immutable.Map(),
+                Immutable.Map(),
+                undefined,
+                undefined,
+                dynamicTitleSetting
+            );
+
+            const refData = dataBuilder(timeReportItem);
+            expect(refData?.get('title')).toBe('Value A, Value B');
+        });
+
+        it('does not compose a title for a plain registry-data row (no booked-users/shift-id/user-id)', () => {
+            const dynamicTitleSetting = Immutable.fromJS({
+                id: `${defaultRegisters.SHIFTS_REG_ID}/dynamic-title`,
+                value: {
+                    separator: ', ',
+                    fields: [{ id: 'FIELD_A' }],
+                },
+            });
+            const regFields = Immutable.Map({
+                FIELD_A: Immutable.Map({ 'field-id': 'field-a', id: 'FIELD_A', 'field-type': 'string', weight: 1 }),
+            });
+            const customerItem = Immutable.Map({
+                id: 'customer-1',
+                'registry-id': 'CUSTOMERS',
+                title: 'Acme AB',
+                values: Immutable.Map({ FIELD_A: 'Value A' }),
+            });
+            const dataBuilder = dataBuilderFactory(
+                regFields,
+                Immutable.Map(),
+                Immutable.Map(),
+                undefined,
+                undefined,
+                dynamicTitleSetting
+            );
+
+            const refData = dataBuilder(customerItem);
+            expect(refData?.get('title')).toBe('Acme AB');
         });
 
         it('uses separator from settings in fallback path-based composition', () => {
